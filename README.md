@@ -11,12 +11,24 @@ This repository is inspired by [ppisljar/pdf-translator](https://github.com/ppis
 - Use LLM for reference checking (fix the bug of supplemental translation)
 
 ## Introduction
+### 1. About the GUI
 <h5 align="center">
   This repository offers an WebUI and API endpoint that translates PDF files using openai GPT, preserving the original layout.
 </h5>
 
+<h5 align="center">
+   Option 1: Upload PDF file and download translated PDF file
+</h5>
 <p align="center">
-  <img src="./assets/example.png" width=70%>
+  <img src="./assets/upload_translate.png" width=70%>
+</p>
+
+<h5 align="center">
+   Option 2: Download the PDF file by URL and save/download translated PDF file
+</h5>
+
+<p align="center">
+  <img src="./assets/download_translate.png" width=70%>
 </p>
 
 ## Features
@@ -35,12 +47,15 @@ This repository is inspired by [ppisljar/pdf-translator](https://github.com/ppis
 - OCR engines:
    - PaddleOCR
 
+- Render engine:
+   - ReportLab
+
 <!-- - Font recognition engines:
    - / -->
 
 
 
-## Installation
+## Installation (To be updated)
 
 1. **Clone this repository**
 
