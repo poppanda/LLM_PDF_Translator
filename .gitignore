@@ -1,0 +1,9 @@
+.DS_Store
+*.pyc
+__pycache__
+
+*.pdf
+
+*.otf
+*.pth
+config.dev.yaml

@@ -1,0 +1,27 @@
+translator:
+  type: ollama # openai / ollama / qwen
+  api_key: YOUR-KEY-GOES-HERE
+  model: 'qwen2.5:32b'
+  # the following args are only for ollama and non multi-thread mode(the multi_thread.enable should be false)
+  # restart container before ocr and layout model to avoid high vram usage at local
+  restart_container: true 
+  container_name: 'ollama' # only for ollama, container name
+
+layout:
+  type: 'dit'
+  device: 'cuda'
+
+ocr:
+  type: 'paddle'
+  device: 'cuda'
+
+render:
+  # type: 'simple'
+  type: 'reportlab'
+  font_name: 'SourceHanSerifSC-Medium'
+  font_path: '/usr/share/fonts/SourceHanSerifSC/SimplifiedChinese/SourceHanSansSC-VF.ttf' # only support ttf font
+  render_mode: INTERLEAVE # TRANSLATION_ONLY / SIDE_BY_SIDE / INTERLEAVE
+
+multi_thread:
+  enable: false
+  # num_thread: 4
