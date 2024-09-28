@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 from loguru import logger
 import sys
+from utils.api_utils import TranslateRequest
 
 if __name__ == "__main__":
     translator = server.TranslateApi()
@@ -28,13 +29,27 @@ if __name__ == "__main__":
                 logger.info(f"Skip {file.path}")
                 continue
             logger.info(f"Translating {file.path}")
-            response = translator._translate_pdf(
-                pdf_path_or_bytes=file.path,
-                output_dir=translator.temp_dir_name,
+            req = TranslateRequest(
+                pdf_path=file.path,
+                temp_output_dir=translator.temp_dir_name,
                 from_lang="English",
                 to_lang="Chinese",
                 translate_all=True,
                 p_from=0,
                 p_to=0,
                 output_file_path=file.path.replace(".pdf", "_translated.pdf"),
+                add_blank_page=True,
             )
+            
+            translator._translate_pdf(req)
+            # response = translator._translate_pdf(
+            #     pdf_path=file.path,
+            #     output_dir=translator.temp_dir_name,
+            #     from_lang="English",
+            #     to_lang="Chinese",
+            #     translate_all=True,
+            #     p_from=0,
+            #     p_to=0,
+            #     output_file_path=file.path.replace(".pdf", "_translated.pdf"),
+            #     add_blank_page=True,
+            # )

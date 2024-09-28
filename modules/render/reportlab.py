@@ -35,7 +35,7 @@ class ReportLabRender(RenderBase):
         output_file = output_dir if output_dir else (temp_dir_name / "translated.pdf")
         if isinstance(output_file, Path):
             output_file = str(output_file)
-        self.output_dir = output_file
+        self.output_file = output_file
         self.packet = io.BytesIO()
         self.pdf = Canvas(self.packet, pagesize=(1000, 1000))
         # self.pdf.setFont(self.font_name, self.FONT_SIZE)
@@ -266,7 +266,7 @@ class ReportLabRender(RenderBase):
     def save_pdf(
         self,
         render_mode: RenderMode,
-        src_pdf_path: Optional[str | bytes] = None,
+        src_pdf_path: Optional[Path] = None,
         p_from: Optional[int] = None,
         add_blank_page: bool = False,
     ):
@@ -276,18 +276,16 @@ class ReportLabRender(RenderBase):
         if (render_mode is RenderMode.SIDE_BY_SIDE) or (
             render_mode is RenderMode.INTERLEAVE
         ):
-            if isinstance(src_pdf_path, bytes):
-                src_pdf = PdfReader(io.BytesIO(src_pdf_path))
-            else:
-                src_pdf = PdfReader(open(src_pdf_path, "rb"))
+            # if isinstance(src_pdf_path, bytes):
+            #     src_pdf = PdfReader(io.BytesIO(src_pdf_path))
+            # else:
+            src_pdf = PdfReader(open(src_pdf_path, "rb"))
 
         # existing_pdf = PdfReader(open("samplePDF.pdf", "rb"))
         output = PdfWriter()
 
         width, height = new_pdf.pages[0].mediabox.width, new_pdf.pages[0].mediabox.height
 
-        if render_mode is RenderMode.INTERLEAVE and add_blank_page:
-            output.add_blank_page(width, height)
 
         for i, page in enumerate(new_pdf.pages):
             if render_mode is RenderMode.SIDE_BY_SIDE:
@@ -306,9 +304,17 @@ class ReportLabRender(RenderBase):
             )
             output.add_page(page)
 
-        if render_mode is RenderMode.INTERLEAVE and add_blank_page:
-            output.add_blank_page(width, height)
-
-        outputStream = open(self.output_dir, "wb")
+        outputStream = open(self.output_file, "wb")
         output.write(outputStream)
         outputStream.close()
+            
+        if render_mode is RenderMode.INTERLEAVE and add_blank_page:
+            previous_pdf = PdfReader(self.output_file)
+            output = PdfWriter()
+            output.add_blank_page(width, height)
+            for i, page in enumerate(previous_pdf.pages):
+                output.add_page(page)
+            output.add_blank_page(width, height)
+            outputStream = open(self.output_file.replace(".pdf", "_blank.pdf"), "wb")
+            output.write(outputStream)
+            outputStream.close()
