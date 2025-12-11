@@ -4,7 +4,7 @@ translator:
   model: 'qwen2.5:32b'
   # the following args are only for ollama and non multi-thread mode(the multi_thread.enable should be false)
   # restart container before ocr and layout model to avoid high vram usage at local
-  restart_container: true 
+  restart_container: false
   container_name: 'ollama' # only for ollama, container name
 
 layout:
