@@ -14,6 +14,7 @@ CLEAR_TEMP_URL = "http://localhost:8765/clear_temp_dir/"
 GET_RESULT_URL = "http://localhost:8765/get_files/"
 DOWNLOAD_RESULT_URL = "http://localhost:8765/download_file/"
 
+
 def get_translate_status_request(status=None):
     def _convert_status(status):
         if status == 0:
@@ -22,6 +23,7 @@ def get_translate_status_request(status=None):
             return "Translating"
         elif status == 2:
             return "Translated"
+
     response = requests.post(GET_RESULT_URL, data={"status": status})
     if response.status_code == 200:
         raw_data = json.loads(response.content)
@@ -36,15 +38,19 @@ def get_translate_status_request(status=None):
         return dataframe
     else:
         logger.error(f"An error occurred: {response.status_code}")
-        
+
+
 def refresh_table():
     dataframe = get_translate_status_request()
-    available_files = dataframe["target_path"][dataframe["status"] == "Translated"].tolist()
+    available_files = dataframe["target_path"][
+        dataframe["status"] == "Translated"
+    ].tolist()
     return gr.update(value=dataframe), gr.update(choices=available_files)
-        
+
+
 def download_file(file_path):
     response = requests.post(DOWNLOAD_RESULT_URL, data={"file_path": file_path})
-    if not(os.path.exists("temp")):
+    if not (os.path.exists("temp")):
         os.mkdir("temp")
     if response.status_code == 200:
         # get the absolute path of the file
@@ -56,6 +62,7 @@ def download_file(file_path):
         return output_file_path
     else:
         logger.error(f"An error occurred: {response.status_code}")
+
 
 def translate_request(
     save_to_folder: bool,
@@ -85,7 +92,7 @@ def translate_request(
         translated PDF.
     """
     render_mode = render_mode.lower().replace(" ", "_")
-    
+
     if save_to_folder:
         file_name = file.split("/")[-1]
         save_pdf_path = os.path.join(input_pdf_folder, file_name)
@@ -104,7 +111,9 @@ def translate_request(
             "add_blank_page": add_blank_page,
         }
     else:
-        logger.info(f"Translate request, NOT SAVE TO FOLDER, file: {file}, input_pdf_folder: {input_pdf_folder}, from_lang: {from_lang}, to_lang: {to_lang}, translate_all: {translate_all}, from_page: {from_page}, to_page: {to_page}, render_mode: {render_mode}, output_file_folder: {output_file_folder}, add_blank_page: {add_blank_page}, suffix: {suffix}")
+        logger.info(
+            f"Translate request, NOT SAVE TO FOLDER, file: {file}, input_pdf_folder: {input_pdf_folder}, from_lang: {from_lang}, to_lang: {to_lang}, translate_all: {translate_all}, from_page: {from_page}, to_page: {to_page}, render_mode: {render_mode}, output_file_folder: {output_file_folder}, add_blank_page: {add_blank_page}, suffix: {suffix}"
+        )
         req_data = {
             "from_lang": from_lang,
             "to_lang": to_lang,
@@ -160,7 +169,7 @@ def download_and_translate(
     render_mode,
     add_blank_page,
     db_name: str,
-    suffix
+    suffix,
 ):
     if url_file_name == "":
         raise ValueError("Please enter a file name")
@@ -358,30 +367,33 @@ class DetermineSaveInFolderToTmpWidget:
         )
         return save_to_folder_checkbox, save_folder, translate_folder
 
+
 class GradioApp:
-    def __init__(self, langs, config: dict):
-        self.langs = langs
+    def __init__(self, langs: list[str], config: dict[str, Any]):
+        self.langs : list[str]= langs
         self.config = config
         self.check_db(config)
         try:
-            self.config['auth']
+            self.config["auth"]
         except:
-            self.config['auth'] = None
+            self.config["auth"] = None
 
     def check_db(self, config):
-        basic_info_db = BasicInfoDatabase(self.config['database_name'])
+        basic_info_db = BasicInfoDatabase(self.config["database_name"])
         keys = ["download_folder", "translate_folder"]
         for key in keys:
             if not basic_info_db.get_value(key):
                 basic_info_db.set_value(key, config[key])
-    
+
     def create_gradio_app(self):
-        basic_info_db = BasicInfoDatabase(self.config['database_name'])
+        basic_info_db = BasicInfoDatabase(self.config["database_name"])
         with gr.Blocks(theme="Soft") as upload_translator:
             with gr.Column() as col:
                 title = gr.Markdown("## PDF Translator")
                 file = gr.File(label="select file", height=30, file_types=[".pdf"])
-                save_to_dir_widget = DetermineSaveInFolderToTmpWidget(self.config['download_folder'], self.config['translate_folder'])
+                save_to_dir_widget = DetermineSaveInFolderToTmpWidget(
+                    self.config["download_folder"], self.config["translate_folder"]
+                )
                 save_folder_checkbox, save_folder, translate_folder = (
                     save_to_dir_widget.get_widgets()
                 )
@@ -455,20 +467,22 @@ class GradioApp:
                 btn = gr.Button(value="Download and Translate")
 
                 # Server file browser
-                # folder_paths = ["/home/home/Docs/Papers", "/home/home/Docs/Papers"]
 
                 download_folder_info = gr.Markdown(
                     f"### Download Folder: {basic_info_db.get_value('download_folder')}"
                 )
                 download_folder = gr.CheckboxGroup(
-                    choices=[".."] + get_folders(basic_info_db.get_value("download_folder")),
+                    choices=[".."]
+                    + get_folders(basic_info_db.get_value("download_folder")),
                     value=None,
                     label="Download Folder",
                     show_label=False,
                     interactive=True,
                 )
                 download_folder.input(
-                    lambda x, y: update_folder(x, y, self.config['database_name'], 'download_folder'),
+                    lambda x, y: update_folder(
+                        x, y, self.config["database_name"], "download_folder"
+                    ),
                     inputs=(download_folder, download_folder_info),
                     outputs=[download_folder, download_folder_info],
                 )
@@ -477,14 +491,17 @@ class GradioApp:
                     f"### Translate Folder: {basic_info_db.get_value('translate_folder')}"
                 )
                 translate_folder = gr.CheckboxGroup(
-                    choices=[".."] + get_folders(basic_info_db.get_value("translate_folder")),
+                    choices=[".."]
+                    + get_folders(basic_info_db.get_value("translate_folder")),
                     value=None,
                     label="Translate Folder",
                     show_label=False,
                     interactive=True,
                 )
                 translate_folder.input(
-                    lambda x, y: update_folder(x, y, self.config['database_name'], 'translate_folder'),
+                    lambda x, y: update_folder(
+                        x, y, self.config["database_name"], "translate_folder"
+                    ),
                     inputs=[translate_folder, translate_folder_info],
                     outputs=[translate_folder, translate_folder_info],
                 )
@@ -523,8 +540,8 @@ class GradioApp:
                         to_page,
                         render_mode,
                         add_blank_page,
-                        self.config['database_name'],
-                        suffix
+                        self.config["database_name"],
+                        suffix,
                     )
 
                 btn.click(
@@ -543,7 +560,7 @@ class GradioApp:
                         render_mode,
                         add_blank_page,
                         suffix,
-                    ]
+                    ],
                 )
         with gr.Blocks(theme="Soft") as result_page:
             refresh_btn = gr.Button(value="Refresh")
@@ -553,19 +570,32 @@ class GradioApp:
             )
             result_table = gr.DataFrame(value=dataframe)
             with gr.Row():
-                download_file_box = gr.Dropdown(label="Download File", choices=[], value=None)
+                download_file_box = gr.Dropdown(
+                    label="Download File", choices=[], value=None
+                )
                 # @gr.render(download_file_box)
                 # def _download_file(file):
                 #     if file is None:
                 #         gr.Label(label="No file available")
                 #     else:
                 #         gr.File(value=download_file(file), label="Download", file_types=[".pdf"])
-                download_file_btn = gr.DownloadButton(value=None, label="No file available", visible=False)
-            refresh_btn.click(refresh_table,
+                download_file_btn = gr.DownloadButton(
+                    value=None, label="No file available", visible=False
+                )
+            refresh_btn.click(
+                refresh_table,
                 outputs=[result_table, download_file_box],
             )
-            download_file_box.input(lambda x: gr.DownloadButton(value=download_file(x), label="Download", interactive=True, visible=True), inputs=[download_file_box], outputs=[download_file_btn])
-            
+            download_file_box.input(
+                lambda x: gr.DownloadButton(
+                    value=download_file(x),
+                    label="Download",
+                    interactive=True,
+                    visible=True,
+                ),
+                inputs=[download_file_box],
+                outputs=[download_file_btn],
+            )
 
         page = gr.TabbedInterface(
             [upload_translator, save_translator, result_page],
@@ -573,10 +603,9 @@ class GradioApp:
         )
 
         # page.launch(share=False, auth=("poppanda", "poppanda"), server_port=8765, server_name="0.0.0.0")
-        if self.config['auth'] is None:
+        if self.config["auth"] is None:
             page.auth = [("admin", "password")]
         else:
-            page.auth=self.config['auth']
+            page.auth = self.config["auth"]
 
         return page
-

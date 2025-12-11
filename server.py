@@ -33,7 +33,8 @@ logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 
-from utils import GradioApp, load_config
+from utils import load_config
+from utils.gui import GradioApp
 from modules import (
     load_translator,
     load_layout_engine,

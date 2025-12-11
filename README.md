@@ -66,19 +66,18 @@ This repository is inspired by [ppisljar/pdf-translator](https://github.com/ppis
 
 ### 2.1 Local installation
 1. **prerequesites:**
-- Basically ffmpeg and the font you want to use
+- Basically ffmpeg, propper-utils and the font you want to use
 - Check if you wants to use `uv` or `venv` for individual installation
 
 2. **Install the dependencies**
 - (Recommand)If you are using `uv`, run the following command
 ```shell
 uv sync
-uv pip install git+https://github.com/facebookresearch/detectron2.git
+uv pip install --no-build-isolation git+https://github.com/facebookresearch/detectron2.git
 ```
 - Otherwise, run the following command
 ```shell
-pip install -r requirements.txt
-pip install git+https://github.com/facebookresearch/detectron2.git
+pip install --no-build-isolation -r requirements.txt
 ```
 
 ### 2.2 docker installation
