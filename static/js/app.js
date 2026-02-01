@@ -7,7 +7,10 @@ const ENDPOINTS = {
     getConfig: '/get_config/',
     browseDirectory: '/browse_directory/',
     createDirectory: '/create_directory/',
-    deleteDirectory: '/delete_directory/'
+    deleteDirectory: '/delete_directory/',
+    getTranslatorConfig: '/get_translator_config/',
+    setTranslatorConfig: '/set_translator_config/',
+    fetchModels: '/fetch_models/'
 };
 
 // Store default paths (use window to make it globally accessible)
@@ -78,39 +81,80 @@ document.getElementById('translate-all-download').addEventListener('change', (e)
     document.getElementById('page-range-download').style.display = e.target.checked ? 'none' : 'grid';
 });
 
+// Use temp path toggle for upload form
+document.getElementById('use-temp-path-upload').addEventListener('change', (e) => {
+    const displayInput = document.getElementById('output-path-display-upload');
+    const hiddenInput = document.getElementById('output-path-upload');
+    const browseBtn = document.getElementById('browse-btn-upload');
+    const customCheckbox = document.getElementById('custom-output-path-upload');
+    
+    if (e.target.checked) {
+        // Use temp path
+        customCheckbox.checked = false;
+        browseBtn.disabled = true;
+        displayInput.value = window.defaultPaths.temp_dir || '/tmp';
+        hiddenInput.value = window.defaultPaths.temp_dir || '/tmp';
+    } else {
+        // Use default path
+        displayInput.value = window.defaultPaths.translate_folder;
+        hiddenInput.value = '';
+    }
+    updateUploadSummary();
+});
+
 // Custom output path toggle for upload form
 document.getElementById('custom-output-path-upload').addEventListener('change', (e) => {
     const displayInput = document.getElementById('output-path-display-upload');
     const hiddenInput = document.getElementById('output-path-upload');
-    const browseBtn = document.getElementById('browse-btn-upload');
+    const tempCheckbox = document.getElementById('use-temp-path-upload');
     
     if (e.target.checked) {
         // Enable custom path - load from config
-        browseBtn.disabled = false;
+        tempCheckbox.checked = false;
         displayInput.value = window.defaultPaths.translate_folder;
         hiddenInput.value = window.defaultPaths.translate_folder;
     } else {
         // Use default path
-        browseBtn.disabled = true;
         displayInput.value = window.defaultPaths.translate_folder;
         hiddenInput.value = '';
     }
+    updateUploadSummary();
+});
+
+// Use temp path toggle for download form
+document.getElementById('use-temp-path-download').addEventListener('change', (e) => {
+    const displayInput = document.getElementById('output-path-display-download');
+    const hiddenInput = document.getElementById('output-path-download');
+    const browseBtn = document.getElementById('browse-btn-download');
+    const customCheckbox = document.getElementById('custom-output-path-download');
+    
+    if (e.target.checked) {
+        // Use temp path
+        customCheckbox.checked = false;
+        browseBtn.disabled = true;
+        displayInput.value = window.defaultPaths.temp_dir || '/tmp';
+        hiddenInput.value = window.defaultPaths.temp_dir || '/tmp';
+    } else {
+        // Use default path
+        displayInput.value = window.defaultPaths.download_folder;
+        hiddenInput.value = '';
+    }
+    updateDownloadSummary();
 });
 
 // Custom output path toggle for download form
 document.getElementById('custom-output-path-download').addEventListener('change', (e) => {
     const displayInput = document.getElementById('output-path-display-download');
     const hiddenInput = document.getElementById('output-path-download');
-    const browseBtn = document.getElementById('browse-btn-download');
+    const tempCheckbox = document.getElementById('use-temp-path-download');
     
     if (e.target.checked) {
         // Enable custom path - load from config
-        browseBtn.disabled = false;
+        tempCheckbox.checked = false;
         displayInput.value = window.defaultPaths.download_folder;
         hiddenInput.value = window.defaultPaths.download_folder;
     } else {
         // Use default path
-        browseBtn.disabled = true;
         displayInput.value = window.defaultPaths.download_folder;
         hiddenInput.value = '';
     }
@@ -133,6 +177,11 @@ function updateUploadSummary() {
     const fromLang = document.getElementById('from-lang-upload').value;
     const toLang = document.getElementById('to-lang-upload').value;
     document.getElementById('summary-lang-upload').textContent = `${fromLang} → ${toLang}`;
+    
+    // Model info
+    const provider = document.getElementById('current-provider')?.textContent || '-';
+    const model = document.getElementById('current-model')?.textContent || '-';
+    document.getElementById('summary-model-upload').textContent = provider !== '-' ? `${provider} / ${model}` : '-';
     
     // Page range
     const translateAll = document.getElementById('translate-all-upload').checked;
@@ -168,6 +217,11 @@ function updateDownloadSummary() {
     const fromLang = document.getElementById('from-lang-download').value;
     const toLang = document.getElementById('to-lang-download').value;
     document.getElementById('summary-lang-download').textContent = `${fromLang} → ${toLang}`;
+    
+    // Model info
+    const provider = document.getElementById('current-provider')?.textContent || '-';
+    const model = document.getElementById('current-model')?.textContent || '-';
+    document.getElementById('summary-model-download').textContent = provider !== '-' ? `${provider} / ${model}` : '-';
     
     // Page range
     const translateAll = document.getElementById('translate-all-download').checked;
@@ -417,6 +471,7 @@ async function loadDefaultPaths(retryCount = 0) {
             
             window.defaultPaths.download_folder = config.download_folder;
             window.defaultPaths.translate_folder = config.translate_folder;
+            window.defaultPaths.temp_dir = config.temp_dir;
             
             // Update upload form display
             document.getElementById('output-path-display-upload').value = config.translate_folder;
@@ -425,10 +480,6 @@ async function loadDefaultPaths(retryCount = 0) {
             // Update download form display
             document.getElementById('output-path-display-download').value = config.download_folder;
             document.getElementById('output-path-display-download').placeholder = config.download_folder;
-            
-            // Enable browse buttons
-            document.getElementById('browse-btn-upload').disabled = true;
-            document.getElementById('browse-btn-download').disabled = true;
             
             console.log('Default paths loaded successfully:', window.defaultPaths);
             
@@ -518,3 +569,243 @@ function initResizableTable() {
         }
     });
 }
+
+// ============ Model Settings ============
+
+const PROVIDER_DEFAULTS = {
+    ollama: {
+        baseUrl: 'http://localhost:11434/v1/',
+        needsApiKey: false,
+        hint: 'Default: http://localhost:11434/v1/'
+    },
+    openai: {
+        baseUrl: 'https://api.openai.com/v1',
+        needsApiKey: true,
+        hint: 'Default: https://api.openai.com/v1'
+    },
+    qwen: {
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        needsApiKey: true,
+        hint: 'Default: https://dashscope.aliyuncs.com/compatible-mode/v1'
+    },
+    claude: {
+        baseUrl: 'https://api.anthropic.com/v1',
+        needsApiKey: true,
+        hint: 'Default: https://api.anthropic.com/v1'
+    },
+    deepseek: {
+        baseUrl: 'https://api.deepseek.com/v1',
+        needsApiKey: true,
+        hint: 'Default: https://api.deepseek.com/v1'
+    },
+    custom: {
+        baseUrl: '',
+        needsApiKey: true,
+        hint: 'Enter your custom OpenAI-compatible API endpoint'
+    }
+};
+
+// Initialize settings page
+function initSettingsPage() {
+    const providerSelect = document.getElementById('provider-select');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const baseUrlInput = document.getElementById('base-url-input');
+    const baseUrlHint = document.getElementById('base-url-hint');
+    const apiKeyGroup = document.getElementById('api-key-group');
+    const modelSelect = document.getElementById('model-select');
+    const customModelGroup = document.getElementById('custom-model-group');
+    const customModelInput = document.getElementById('custom-model-input');
+    const fetchModelsBtn = document.getElementById('fetch-models-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const toggleApiKeyBtn = document.getElementById('toggle-api-key');
+
+    // Toggle API key visibility
+    toggleApiKeyBtn.addEventListener('click', () => {
+        if (apiKeyInput.type === 'password') {
+            apiKeyInput.type = 'text';
+            toggleApiKeyBtn.textContent = '🙈';
+        } else {
+            apiKeyInput.type = 'password';
+            toggleApiKeyBtn.textContent = '👁️';
+        }
+    });
+
+    // Provider change handler
+    providerSelect.addEventListener('change', () => {
+        const provider = providerSelect.value;
+        const defaults = PROVIDER_DEFAULTS[provider];
+        
+        // Update base URL placeholder and hint
+        baseUrlInput.placeholder = defaults.baseUrl || 'https://api.example.com/v1';
+        baseUrlHint.textContent = defaults.hint;
+        
+        // Show/hide API key field
+        if (defaults.needsApiKey) {
+            apiKeyGroup.style.display = 'block';
+        } else {
+            apiKeyGroup.style.display = 'none';
+            apiKeyInput.value = '';
+        }
+        
+        // Clear model selection
+        modelSelect.innerHTML = '<option value="">-- Select a model --</option>';
+    });
+
+    // Model select change - show custom input if needed
+    modelSelect.addEventListener('change', () => {
+        if (modelSelect.value === '__custom__') {
+            customModelGroup.style.display = 'block';
+            customModelInput.focus();
+        } else {
+            customModelGroup.style.display = 'none';
+        }
+    });
+
+    // Fetch models button
+    fetchModelsBtn.addEventListener('click', async () => {
+        const provider = providerSelect.value;
+        const apiKey = apiKeyInput.value;
+        const baseUrl = baseUrlInput.value;
+        
+        toggleSpinner(fetchModelsBtn, true);
+        
+        try {
+            const formData = new FormData();
+            formData.append('provider', provider);
+            formData.append('api_key', apiKey);
+            formData.append('base_url', baseUrl);
+            
+            const response = await fetch(ENDPOINTS.fetchModels, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                showNotification(`Error: ${data.error}`, 'error');
+            }
+            
+            // Populate model select
+            modelSelect.innerHTML = '<option value="">-- Select a model --</option>';
+            
+            if (data.models && data.models.length > 0) {
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+                showNotification(`Loaded ${data.models.length} models`, 'success');
+            } else {
+                showNotification('No models found. You can enter a model name manually.', 'info');
+            }
+            
+            // Add custom option
+            const customOption = document.createElement('option');
+            customOption.value = '__custom__';
+            customOption.textContent = '-- Enter custom model --';
+            modelSelect.appendChild(customOption);
+            
+        } catch (error) {
+            showNotification(`Error fetching models: ${error.message}`, 'error');
+        } finally {
+            toggleSpinner(fetchModelsBtn, false);
+        }
+    });
+
+    // Save settings button
+    saveSettingsBtn.addEventListener('click', async () => {
+        const provider = providerSelect.value;
+        const apiKey = apiKeyInput.value;
+        const baseUrl = baseUrlInput.value;
+        let model = modelSelect.value;
+        
+        // Use custom model if selected
+        if (model === '__custom__') {
+            model = customModelInput.value;
+        }
+        
+        if (!model) {
+            showNotification('Please select or enter a model', 'error');
+            return;
+        }
+        
+        toggleSpinner(saveSettingsBtn, true);
+        
+        try {
+            const formData = new FormData();
+            formData.append('provider', provider);
+            formData.append('api_key', apiKey);
+            formData.append('base_url', baseUrl);
+            formData.append('model', model);
+            
+            const response = await fetch(ENDPOINTS.setTranslatorConfig, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showNotification(data.message, 'success');
+                updateCurrentConfig(provider, model, 'Active');
+            } else {
+                throw new Error(data.error || 'Failed to save settings');
+            }
+        } catch (error) {
+            showNotification(`Error: ${error.message}`, 'error');
+            updateCurrentConfig(provider, model, 'Error');
+        } finally {
+            toggleSpinner(saveSettingsBtn, false);
+        }
+    });
+
+    // Load current config on page load
+    loadCurrentTranslatorConfig();
+}
+
+function updateCurrentConfig(provider, model, status) {
+    document.getElementById('current-provider').textContent = provider || '-';
+    document.getElementById('current-model').textContent = model || '-';
+    document.getElementById('current-status').textContent = status || '-';
+    
+    // Update summaries with new model info
+    updateUploadSummary();
+    updateDownloadSummary();
+}
+
+async function loadCurrentTranslatorConfig() {
+    try {
+        const response = await fetch(ENDPOINTS.getTranslatorConfig);
+        if (response.ok) {
+            const config = await response.json();
+            
+            // Update form
+            const providerSelect = document.getElementById('provider-select');
+            providerSelect.value = config.type || 'ollama';
+            providerSelect.dispatchEvent(new Event('change'));
+            
+            document.getElementById('api-key-input').value = config.api_key || '';
+            document.getElementById('base-url-input').value = config.base_url || '';
+            
+            // Update current config display
+            updateCurrentConfig(config.type, config.model, 'Active');
+            
+            // If there's a current model, add it to the select
+            if (config.model) {
+                const modelSelect = document.getElementById('model-select');
+                const option = document.createElement('option');
+                option.value = config.model;
+                option.textContent = config.model;
+                option.selected = true;
+                modelSelect.appendChild(option);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading translator config:', error);
+    }
+}
+
+// Initialize settings page when DOM is loaded
+document.addEventListener('DOMContentLoaded', initSettingsPage);

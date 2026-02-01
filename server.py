@@ -172,6 +172,26 @@ class TranslateApi:
                 response_class=JSONResponse,
             )
 
+            # Model configuration APIs
+            self.app.add_api_route(
+                "/get_translator_config/",
+                self.get_translator_config,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/set_translator_config/",
+                self.set_translator_config,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/fetch_models/",
+                self.fetch_models,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+
             # Add root route for HTML frontend
             @self.app.get("/", response_class=HTMLResponse)
             async def root():
@@ -368,6 +388,116 @@ class TranslateApi:
         except Exception as e:
             logger.error(f"Error getting config: {e}")
             return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def get_translator_config(self):
+        """Get current translator configuration."""
+        try:
+            translator_cfg = cfg.get("translator", {})
+            return JSONResponse(
+                content={
+                    "type": translator_cfg.get("type", "ollama"),
+                    "api_key": translator_cfg.get("api_key", ""),
+                    "base_url": translator_cfg.get("base_url", ""),
+                    "model": translator_cfg.get("model", ""),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error getting translator config: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def set_translator_config(
+        self,
+        provider: str = Form(...),
+        api_key: str = Form(""),
+        base_url: str = Form(""),
+        model: str = Form(""),
+    ):
+        """Update translator configuration and reinitialize translator."""
+        global translator, cfg
+        try:
+            # Update config
+            cfg["translator"]["type"] = provider
+            cfg["translator"]["api_key"] = api_key
+            cfg["translator"]["model"] = model
+            if base_url:
+                cfg["translator"]["base_url"] = base_url
+
+            # Reinitialize translator
+            translator = load_translator(cfg["translator"])
+            logger.info(f"Translator updated to {provider} with model {model}")
+
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "message": f"Translator updated to {provider} with model {model}",
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error setting translator config: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def fetch_models(
+        self,
+        provider: str = Form(...),
+        api_key: str = Form(""),
+        base_url: str = Form(""),
+    ):
+        """Fetch available models from the provider API."""
+        try:
+            from openai import OpenAI
+
+            # Set up client based on provider
+            if provider == "ollama":
+                client = OpenAI(
+                    base_url=base_url or "http://localhost:11434/v1/",
+                    api_key="ollama",
+                )
+            elif provider == "openai":
+                client = OpenAI(
+                    api_key=api_key,
+                    base_url=base_url or "https://api.openai.com/v1",
+                )
+            elif provider == "qwen":
+                client = OpenAI(
+                    api_key=api_key,
+                    base_url=base_url
+                    or "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                )
+            elif provider == "claude":
+                # Claude uses different API, return preset models
+                return JSONResponse(
+                    content={
+                        "models": [
+                            "claude-3-opus-20240229",
+                            "claude-3-sonnet-20240229",
+                            "claude-3-haiku-20240307",
+                            "claude-3-5-sonnet-20241022",
+                        ]
+                    }
+                )
+            elif provider == "deepseek":
+                client = OpenAI(
+                    api_key=api_key,
+                    base_url=base_url or "https://api.deepseek.com/v1",
+                )
+            else:
+                # Generic OpenAI-compatible provider
+                client = OpenAI(
+                    api_key=api_key or "none",
+                    base_url=base_url,
+                )
+
+            # Fetch models
+            models_response = client.models.list()
+            models = [model.id for model in models_response.data]
+            models.sort()
+
+            return JSONResponse(content={"models": models})
+        except Exception as e:
+            logger.error(f"Error fetching models: {e}")
+            return JSONResponse(
+                content={"error": str(e), "models": []}, status_code=200
+            )
 
     async def browse_directory(self, path: str = Form(None)):
         """Browse directory contents."""

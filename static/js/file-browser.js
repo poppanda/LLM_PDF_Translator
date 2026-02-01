@@ -31,11 +31,29 @@ class FileBrowser {
         // Open browser buttons
         document.getElementById('browse-btn-upload').addEventListener('click', () => {
             this.currentFormType = 'upload';
+            // Auto-check custom path checkbox and uncheck temp
+            const customCheckbox = document.getElementById('custom-output-path-upload');
+            const tempCheckbox = document.getElementById('use-temp-path-upload');
+            if (!customCheckbox.checked) {
+                tempCheckbox.checked = false;
+                customCheckbox.checked = true;
+                // Trigger change event to update UI
+                customCheckbox.dispatchEvent(new Event('change'));
+            }
             this.open();
         });
         
         document.getElementById('browse-btn-download').addEventListener('click', () => {
             this.currentFormType = 'download';
+            // Auto-check custom path checkbox and uncheck temp
+            const customCheckbox = document.getElementById('custom-output-path-download');
+            const tempCheckbox = document.getElementById('use-temp-path-download');
+            if (!customCheckbox.checked) {
+                tempCheckbox.checked = false;
+                customCheckbox.checked = true;
+                // Trigger change event to update UI
+                customCheckbox.dispatchEvent(new Event('change'));
+            }
             this.open();
         });
 

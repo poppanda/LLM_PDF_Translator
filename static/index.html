@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Translator</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=14">
+    <link rel="stylesheet" href="/static/css/style.css?v=18">
 </head>
 <body>
     <div class="container">
@@ -18,6 +18,7 @@
             <button class="tab-button active" data-tab="upload">Upload & Translate</button>
             <button class="tab-button" data-tab="download">Download & Translate</button>
             <button class="tab-button" data-tab="results">Results</button>
+            <button class="tab-button" data-tab="settings">Model Settings</button>
         </div>
 
         <!-- Upload & Translate Tab -->
@@ -96,14 +97,20 @@
                     <div class="form-group">
                         <div class="output-path-header">
                             <label for="output-path-display-upload">Output Path</label>
-                            <label class="custom-path-toggle">
-                                <input type="checkbox" id="custom-output-path-upload">
-                                Use Custom Output Path
-                            </label>
+                            <div class="output-path-options">
+                                <label class="custom-path-toggle">
+                                    <input type="checkbox" id="use-temp-path-upload">
+                                    Use Temp
+                                </label>
+                                <label class="custom-path-toggle">
+                                    <input type="checkbox" id="custom-output-path-upload">
+                                    Custom Path
+                                </label>
+                            </div>
                         </div>
                         <div class="path-selector">
                             <input type="text" id="output-path-display-upload" readonly placeholder="Loading...">
-                            <button type="button" class="btn btn-secondary" id="browse-btn-upload" disabled>Browse</button>
+                            <button type="button" class="btn btn-secondary" id="browse-btn-upload">Browse</button>
                         </div>
                         <input type="hidden" id="output-path-upload">
                     </div>
@@ -128,6 +135,10 @@
                             <div class="summary-row">
                                 <span class="summary-label">Translation:</span>
                                 <span class="summary-value" id="summary-lang-upload">English → Chinese</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Model:</span>
+                                <span class="summary-value" id="summary-model-upload">-</span>
                             </div>
                             <div class="summary-row">
                                 <span class="summary-label">Page Range:</span>
@@ -239,14 +250,20 @@
                     <div class="form-group">
                         <div class="output-path-header">
                             <label for="output-path-display-download">Output Path</label>
-                            <label class="custom-path-toggle">
-                                <input type="checkbox" id="custom-output-path-download">
-                                Use Custom Output Path
-                            </label>
+                            <div class="output-path-options">
+                                <label class="custom-path-toggle">
+                                    <input type="checkbox" id="use-temp-path-download">
+                                    Use Temp
+                                </label>
+                                <label class="custom-path-toggle">
+                                    <input type="checkbox" id="custom-output-path-download">
+                                    Custom Path
+                                </label>
+                            </div>
                         </div>
                         <div class="path-selector">
                             <input type="text" id="output-path-display-download" readonly placeholder="Loading...">
-                            <button type="button" class="btn btn-secondary" id="browse-btn-download" disabled>Browse</button>
+                            <button type="button" class="btn btn-secondary" id="browse-btn-download">Browse</button>
                         </div>
                         <input type="hidden" id="output-path-download">
                     </div>
@@ -271,6 +288,10 @@
                             <div class="summary-row">
                                 <span class="summary-label">Translation:</span>
                                 <span class="summary-value" id="summary-lang-download">English → Chinese</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Model:</span>
+                                <span class="summary-value" id="summary-model-download">-</span>
                             </div>
                             <div class="summary-row">
                                 <span class="summary-label">Page Range:</span>
@@ -315,6 +336,89 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="card">
+                <h2>Model Settings</h2>
+                <div class="settings-container">
+                    <!-- Provider Selection -->
+                    <div class="form-group">
+                        <label for="provider-select">Provider</label>
+                        <select id="provider-select">
+                            <option value="ollama">Ollama (Local)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="qwen">Qwen (Alibaba)</option>
+                            <option value="claude">Claude (Anthropic)</option>
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="custom">Custom (OpenAI Compatible)</option>
+                        </select>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="form-group" id="api-key-group">
+                        <label for="api-key-input">API Key</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="api-key-input" placeholder="Enter API key...">
+                            <button type="button" class="btn-icon" id="toggle-api-key" title="Show/Hide">👁️</button>
+                        </div>
+                    </div>
+
+                    <!-- Base URL -->
+                    <div class="form-group" id="base-url-group">
+                        <label for="base-url-input">Base URL</label>
+                        <input type="text" id="base-url-input" placeholder="https://api.example.com/v1">
+                        <span class="form-hint" id="base-url-hint"></span>
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div class="form-group">
+                        <label for="model-select">Model</label>
+                        <div class="model-selector">
+                            <select id="model-select">
+                                <option value="">-- Select a model --</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary" id="fetch-models-btn">
+                                <span class="btn-text">Fetch Models</span>
+                                <span class="spinner" style="display: none;"></span>
+                            </button>
+                        </div>
+                        <span class="form-hint">Click "Fetch Models" to load available models from the API</span>
+                    </div>
+
+                    <!-- Custom Model Input -->
+                    <div class="form-group" id="custom-model-group" style="display: none;">
+                        <label for="custom-model-input">Custom Model Name</label>
+                        <input type="text" id="custom-model-input" placeholder="Enter model name manually">
+                    </div>
+
+                    <!-- Current Config Display -->
+                    <div class="current-config">
+                        <div class="config-title">Current Configuration</div>
+                        <div class="config-content">
+                            <div class="config-row">
+                                <span class="config-label">Provider:</span>
+                                <span class="config-value" id="current-provider">-</span>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">Model:</span>
+                                <span class="config-value" id="current-model">-</span>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">Status:</span>
+                                <span class="config-value" id="current-status">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <button type="button" class="btn btn-primary" id="save-settings-btn">
+                        <span class="btn-text">Save Settings</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -375,7 +479,7 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=12"></script>
-    <script src="/static/js/file-browser.js?v=12"></script>
+    <script src="/static/js/app.js?v=18"></script>
+    <script src="/static/js/file-browser.js?v=18"></script>
 </body>
 </html>

@@ -323,6 +323,93 @@ td {
     font-size: 0.75rem;
 }
 
+/* Settings Page */
+.settings-container {
+    max-width: 600px;
+}
+
+.input-with-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.input-with-toggle input {
+    flex: 1;
+}
+
+.btn-icon {
+    background: var(--bg-color);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--border-color);
+}
+
+.model-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.model-selector select {
+    flex: 1;
+}
+
+.model-selector .btn {
+    width: auto;
+    white-space: nowrap;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.current-config {
+    margin: 20px 0;
+    padding: 16px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.config-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.config-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-row {
+    display: flex;
+    font-size: 0.85rem;
+}
+
+.config-label {
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.config-value {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
 /* Resizable Table */
 .resizable-table {
     table-layout: fixed;
@@ -491,6 +578,11 @@ td {
     margin-bottom: 0;
 }
 
+.output-path-options {
+    display: flex;
+    gap: 12px;
+}
+
 .custom-path-toggle {
     font-size: 0.85rem;
     font-weight: normal;
@@ -501,7 +593,7 @@ td {
 }
 
 .custom-path-toggle input[type="checkbox"] {
-    margin-right: 6px;
+    margin-right: 4px;
     width: 14px;
     height: 14px;
 }
