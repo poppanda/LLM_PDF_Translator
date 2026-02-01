@@ -2,7 +2,6 @@ import os
 from .textwrap_local import fw_fill, fw_wrap
 from .ocr_model import OCRModel
 from .layout_model import LayoutAnalyzer
-from .gui import GradioApp
 from PIL import Image, ImageDraw, ImageFont
 from loguru import logger
 from typing import Any

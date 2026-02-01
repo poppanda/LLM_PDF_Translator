@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+PDF Translator Server with Pure HTML Frontend
+This version uses a static HTML/CSS/JS frontend instead of Gradio.
+"""
+
 import sys
 import os
 from threading import Thread
@@ -7,13 +13,12 @@ from pathlib import Path
 from typing import List, Tuple
 import uvicorn
 from fastapi import FastAPI, File, Form, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Optional
 from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
 import time
-import asyncio
-# from starlette.middleware.wsgi import WSGIMiddleware
 from pdf2image import convert_from_bytes, convert_from_path
 from PIL import Image
 from pydantic import BaseModel, Field
@@ -21,7 +26,6 @@ from modules.render.base import RenderMode
 from modules.render.simple import SimpleRender
 from modules.render.reportlab import ReportLabRender
 from tqdm import tqdm
-import gradio as gr
 from loguru import logger
 from concurrent.futures import ThreadPoolExecutor
 from utils.layout_model import Layout
@@ -34,7 +38,6 @@ logger.add(sys.stderr, level="INFO")
 
 
 from utils import load_config
-from utils.gui import GradioApp
 from modules import (
     load_translator,
     load_layout_engine,
@@ -53,6 +56,7 @@ class InputPdf(BaseModel):
     """Input PDF file."""
 
     input_pdf: UploadFile = Field(..., title="Input PDF file")
+
 
 def layout_and_ocr_process(cfg: dict, pdf_images: list):
     """Process the layout and OCR for the PDF images.
@@ -81,49 +85,42 @@ def layout_and_ocr_process(cfg: dict, pdf_images: list):
 
 
 class TranslateApi:
-    """Translator API class.
-
-    Attributes
-    ----------
-    app: FastAPI
-        FastAPI instance
-    temp_dir: tempfile.TemporaryDirectory
-        Temporary directory for storing translated PDF files
-    temp_dir_name: Path
-        Path to the temporary directory
-    layout_model: PPStructure
-        Layout model for detecting text blocks
-    ocr_model: PaddleOCR
-        OCR model for detecting text in the text blocks
-    translate_model: MarianMTModel
-        Translation model for translating text
-    translate_tokenizer: MarianTokenizer
-        Tokenizer for the translation model
-    """
+    """Translator API class with HTML frontend."""
 
     DPI = 200
 
     def __init__(
         self,
         model_root_dir: Path = Path("/app/models/"),
-        enable_api: bool = False,
-        enable_gui: bool = False,
+        enable_api: bool = True,
     ):
         # The database
-        self.database_name = cfg['gui']['database_name']
+        self.database_name = cfg.get("gui", {}).get(
+            "database_name", "pdf_translator_files.db"
+        )
         self.file_db = FileDatabase(self.database_name)
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_dir_name = Path(self.temp_dir.name)
 
         self.use_multi_thread = cfg["multi_thread"]["enable"]
-        
+
         self.pending_requests: list[TranslateRequest] = []
 
         self.translate_thread = Thread(target=self.scan_and_translate)
         self.translate_thread.start()
 
-        if enable_api or enable_gui:
-            self.app = FastAPI()
+        if enable_api:
+            self.app = FastAPI(title="PDF Translator API")
+
+            # Mount static files for HTML frontend
+            static_dir = Path("static")
+            if static_dir.exists():
+                self.app.mount(
+                    "/static", StaticFiles(directory="static"), name="static"
+                )
+                logger.info("Static files mounted at /static")
+
+            # Add API routes
             self.app.add_api_route(
                 "/translate_pdf/",
                 self.translate_pdf,
@@ -149,21 +146,54 @@ class TranslateApi:
                 response_class=FileResponse,
             )
 
-        if enable_gui:
-            gradioapp_ = GradioApp(translator.get_languages(), cfg['gui'])
-            gradioapp = gradioapp_.create_gradio_app()
-            gr.mount_gradio_app(self.app, gradioapp, "/")
+            # File system management APIs
+            self.app.add_api_route(
+                "/browse_directory/",
+                self.browse_directory,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/create_directory/",
+                self.create_directory,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/delete_directory/",
+                self.delete_directory,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/get_config/",
+                self.get_config,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+
+            # Add root route for HTML frontend
+            @self.app.get("/", response_class=HTMLResponse)
+            async def root():
+                html_path = Path("static/index.html")
+                if html_path.exists():
+                    with open(html_path, "r", encoding="utf-8") as f:
+                        return f.read()
+                return "<h1>PDF Translator</h1><p>Frontend not found. Please ensure static/index.html exists.</p>"
+
+            logger.info("HTML Frontend enabled at http://localhost:8765")
 
     def run(self):
         """Run the API server"""
+        logger.info("Starting PDF Translator Server with HTML Frontend")
+        logger.info("Access the web interface at: http://localhost:8765")
         uvicorn.run(self.app, host="0.0.0.0", port=8765)
-        
+
     def scan_and_translate(self):
         """Scan the pending requests and translate them."""
         file_db = FileDatabase(self.database_name)
         while True:
             time.sleep(1)
-            # logger.info(f"Scanning the pending requests, there are {len(self.pending_requests)} requests")
             if len(self.pending_requests) > 0:
                 req = self.pending_requests.pop(0)
                 file_db.set_translating(str(req.pdf_path).split("/")[-1])
@@ -182,7 +212,7 @@ class TranslateApi:
         render_mode: str = Form(...),
         output_file_path: str = Form(None),
         add_blank_page: bool = Form(...),
-    ) -> FileResponse:
+    ) -> JSONResponse:
         """API endpoint for translating PDF files."""
         logger.info(
             f"Got request to translate PDF, the args are:\nfrom_lang: {from_lang} to_lang: {to_lang}\ntranslate_all: {translate_all} p_from: {p_from}, p_to: {p_to}\nrender_mode: {render_mode}\noutput_file_path: {output_file_path}\ninput_pdf_path: {input_pdf_path}\nadd_blank_page: {add_blank_page}\ninput_pdf: {input_pdf is None}"
@@ -192,12 +222,13 @@ class TranslateApi:
             # conver to Path
             input_pdf_data = await input_pdf.read()
             input_pdf_data = BytesIO(input_pdf_data)
-            # input_pdf_data = PdfReader(input_pdf_data)
             # save the PDF file
             logger.info(f"The filename is {input_pdf.filename}")
             if input_pdf_path is None:
                 input_pdf_path = self.temp_dir_name / input_pdf.filename
-                output_file_path = self.temp_dir_name / input_pdf.filename.replace(".pdf", "_translated.pdf")
+                output_file_path = self.temp_dir_name / input_pdf.filename.replace(
+                    ".pdf", "_translated.pdf"
+                )
             else:
                 input_pdf_path = Path(input_pdf_path)
             with open(input_pdf_path, "wb") as f:
@@ -208,7 +239,10 @@ class TranslateApi:
         elif input_pdf_path:
             input_pdf_data = Path(input_pdf_path)
         else:
-            raise ValueError("No input PDF file provided")
+            return JSONResponse(
+                content={"message": "No input PDF file provided"}, status_code=400
+            )
+
         response: str = self._submit(
             input_pdf_data,
             self.temp_dir_name,
@@ -249,28 +283,31 @@ class TranslateApi:
             render_mode=render_mode,
             add_blank_page=add_blank_page,
         )
-        # self.req_db.add_request(req)
-        # self.lock.acquire()
         self.pending_requests.append(req)
-        # self.lock.release()
         self.file_db.add_file(
-            str(req.pdf_path).split("/")[-1], 
-            str(req.pdf_path), 
+            str(req.pdf_path).split("/")[-1],
+            str(req.pdf_path),
             str(req.output_file_path),
-            FileStatus.NOT_TRANSLATED
+            FileStatus.NOT_TRANSLATED,
         )
         if len(self.pending_requests) == 1:
             return "Request submitted, translating..."
         else:
             return f"Request submitted, there are {len(self.pending_requests) - 1} requests before."
 
-    async def get_files(self, target_status: Optional[FileStatus]=Form(None)):
+    async def get_files(self, target_status: Optional[FileStatus] = Form(None)):
         logger.info(f"Getting files with status {target_status}")
         file_status: list[tuple] = self.file_db.get_files(target_status)
         ret_status = []
         for file, src_path, target_path, status in file_status:
-            target_file_disappeared = status == FileStatus.TRANSLATED.value and not os.path.exists(target_path)
-            src_path_disappeared = status == FileStatus.NOT_TRANSLATED.value and not os.path.exists(src_path)
+            target_file_disappeared = (
+                status == FileStatus.TRANSLATED.value
+                and not os.path.exists(target_path)
+            )
+            src_path_disappeared = (
+                status == FileStatus.NOT_TRANSLATED.value
+                and not os.path.exists(src_path)
+            )
             if target_file_disappeared or src_path_disappeared:
                 self.file_db.remove_file(file)
                 continue
@@ -282,11 +319,11 @@ class TranslateApi:
             }
             ret_status.append(status)
         return JSONResponse(content=ret_status)
-    
-    async def download_file(self, file_path: str=Form(...)):
+
+    async def download_file(self, file_path: str = Form(...)):
         logger.info(f"Downloading file {file_path}")
         if not os.path.exists(file_path):
-            return JSONResponse(content={"message": "File not found"})
+            return JSONResponse(content={"message": "File not found"}, status_code=404)
         return FileResponse(file_path)
 
     async def clear_temp_dir(self):
@@ -295,6 +332,173 @@ class TranslateApi:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_dir_name = Path(self.temp_dir.name)
         return {"message": "temp dir cleared"}
+
+    async def get_config(self):
+        """Get configuration including default paths."""
+        try:
+            # Get project root directory (where server.py is located)
+            project_root = Path(__file__).parent.resolve()
+
+            download_folder = cfg.get("gui", {}).get(
+                "download_folder", str(project_root / "download")
+            )
+            translate_folder = cfg.get("gui", {}).get(
+                "translate_folder", str(project_root / "translate")
+            )
+
+            # Resolve paths to absolute paths
+            # If path is relative, resolve it relative to project root
+            download_path = Path(download_folder)
+            if not download_path.is_absolute():
+                download_path = project_root / download_folder
+            download_folder = str(download_path.resolve())
+
+            translate_path = Path(translate_folder)
+            if not translate_path.is_absolute():
+                translate_path = project_root / translate_folder
+            translate_folder = str(translate_path.resolve())
+
+            return JSONResponse(
+                content={
+                    "download_folder": download_folder,
+                    "translate_folder": translate_folder,
+                    "temp_dir": str(self.temp_dir_name),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error getting config: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def browse_directory(self, path: str = Form(None)):
+        """Browse directory contents."""
+        try:
+            # If no path provided, use project root
+            if path is None or path == "":
+                path = str(Path(__file__).parent.resolve())
+
+            # Security: prevent path traversal attacks
+            target_path = Path(path).resolve()
+
+            # Check if path exists and is a directory
+            if not target_path.exists():
+                return JSONResponse(
+                    content={"error": "Path does not exist"}, status_code=404
+                )
+
+            if not target_path.is_dir():
+                return JSONResponse(
+                    content={"error": "Path is not a directory"}, status_code=400
+                )
+
+            # Get directory contents
+            items = []
+            try:
+                for item in sorted(target_path.iterdir()):
+                    try:
+                        is_dir = item.is_dir()
+                        items.append(
+                            {
+                                "name": item.name,
+                                "path": str(item),
+                                "is_directory": is_dir,
+                                "size": item.stat().st_size if not is_dir else 0,
+                                "modified": item.stat().st_mtime,
+                            }
+                        )
+                    except PermissionError:
+                        continue  # Skip items we can't access
+            except PermissionError:
+                return JSONResponse(
+                    content={"error": "Permission denied"}, status_code=403
+                )
+
+            # Get parent directory
+            parent = (
+                str(target_path.parent) if target_path.parent != target_path else None
+            )
+
+            return JSONResponse(
+                content={
+                    "current_path": str(target_path),
+                    "parent_path": parent,
+                    "items": items,
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Error browsing directory: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def create_directory(self, path: str = Form(...), name: str = Form(...)):
+        """Create a new directory."""
+        try:
+            parent_path = Path(path).resolve()
+            new_dir = parent_path / name
+
+            # Check if parent exists
+            if not parent_path.exists() or not parent_path.is_dir():
+                return JSONResponse(
+                    content={"error": "Parent directory does not exist"},
+                    status_code=404,
+                )
+
+            # Check if directory already exists
+            if new_dir.exists():
+                return JSONResponse(
+                    content={"error": "Directory already exists"}, status_code=400
+                )
+
+            # Create directory
+            new_dir.mkdir(parents=False, exist_ok=False)
+            logger.info(f"Created directory: {new_dir}")
+
+            return JSONResponse(
+                content={
+                    "message": "Directory created successfully",
+                    "path": str(new_dir),
+                }
+            )
+
+        except PermissionError:
+            return JSONResponse(content={"error": "Permission denied"}, status_code=403)
+        except Exception as e:
+            logger.error(f"Error creating directory: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def delete_directory(self, path: str = Form(...)):
+        """Delete an empty directory."""
+        try:
+            target_path = Path(path).resolve()
+
+            # Check if path exists
+            if not target_path.exists():
+                return JSONResponse(
+                    content={"error": "Directory does not exist"}, status_code=404
+                )
+
+            # Check if it's a directory
+            if not target_path.is_dir():
+                return JSONResponse(
+                    content={"error": "Path is not a directory"}, status_code=400
+                )
+
+            # Check if directory is empty
+            if any(target_path.iterdir()):
+                return JSONResponse(
+                    content={"error": "Directory is not empty"}, status_code=400
+                )
+
+            # Delete directory
+            target_path.rmdir()
+            logger.info(f"Deleted directory: {target_path}")
+
+            return JSONResponse(content={"message": "Directory deleted successfully"})
+
+        except PermissionError:
+            return JSONResponse(content={"error": "Permission denied"}, status_code=403)
+        except Exception as e:
+            logger.error(f"Error deleting directory: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
 
     def _init_translation(
         self,
@@ -343,46 +547,20 @@ class TranslateApi:
         self,
         req: TranslateRequest,
     ) -> None:
-        """Backend function for translating PDF files.
-
-        Translation is performed in the following steps:
-            1. Getting the layout and text
-                1.1 Convert the PDF file to images
-                1.2 Detect text blocks in the images (layout detection)
-                1.3 For each text block, detect text (ocr)
-            2. translate the text
-            3. Setting the render font, render each page with the translated text
-            4. Merge all PDF files into one PDF file
-
-        At 3, this function does not translate the text after
-        the references section. Instead, saves the image as it is.
-
-        Parameters
-        ----------
-        pdf_path: Path
-            Path to the input PDF file or bytes of the input PDF file
-        temp_output_dir: Path
-            Path to the output directory for temporal files
-        from_lang: str
-            The source language
-        to_lang: str
-            The target language
-        translate_all: bool
-            Translate all the pages
-        p_from: int
-            (Won't take effect when translate_all is True) The begin index of the range of translation
-        p_to: int
-            (Won't take effect when translate_all is True) The end index of the range of translation
-        output_file_path: Optional[Path | str] = None
-            The path of output file
-        render_mode: Optional[str] = None,
-            The render mode
-        add_blank_page: bool = False,
-            Add blank page at the begining and the end of the pdf, only take effects when the render mode is RenderMode.INTERLEAVE and the render backend is ReportLab
-        """
-        # 0. Initialize
+        """Backend function for translating PDF files."""
         logger.info(f"Translate PDF: {req.pdf_path}")
-        pdf_path, temp_output_dir, from_lang, to_lang, translate_all, p_from, p_to, output_file_path, render_mode, add_blank_page = req.extract()
+        (
+            pdf_path,
+            temp_output_dir,
+            from_lang,
+            to_lang,
+            translate_all,
+            p_from,
+            p_to,
+            output_file_path,
+            render_mode,
+            add_blank_page,
+        ) = req.extract()
         pdf_images, render_mode = self._init_translation(
             pdf_path, render_mode, p_from, p_to, translate_all
         )
@@ -394,7 +572,9 @@ class TranslateApi:
 
         if isinstance(output_file_path, str):
             if Path(output_file_path).is_dir():
-                output_file_path = os.path.join(output_file_path, pdf_path.name.replace(".pdf", "_translated.pdf"))
+                output_file_path = os.path.join(
+                    output_file_path, pdf_path.name.replace(".pdf", "_translated.pdf")
+                )
             output_file_path = Path(output_file_path)
         if isinstance(render_engine, SimpleRender):
             render_engine.init_pdf()
@@ -411,9 +591,6 @@ class TranslateApi:
 
         # 1. Getting layout and text
         if not self.use_multi_thread:
-            # Use multi-processing to control the vram usage
-            # This will free the vram after each page is processed
-            # On 3090, the vram usage is around 5GB
             logger.info(f"\tUsing single-threading")
             self.pool = Pool(1)
             res = self.pool.apply_async(layout_and_ocr_process, args=(cfg, pdf_images))
@@ -425,15 +602,10 @@ class TranslateApi:
             layout_engine = load_layout_engine(cfg["layout"])
             ocr_engine = load_ocr_engine(cfg["ocr"])
 
-            for i, image in enumerate(
-                zip(range(p_to - p_from), pdf_images), desc="Getting layout and texts"
-            ):
-                result: list[Layout] = layout_engine.get_single_layout(
-                    image
-                )  # Getting layout
-                result = ocr_engine.get_all_text(result)  # Getting text
+            for i, image in enumerate(zip(range(p_to - p_from), pdf_images)):
+                result: list[Layout] = layout_engine.get_single_layout(image)
+                result = ocr_engine.get_all_text(result)
                 results.append(result)
-                # translate the text in parallel
                 t = Thread(target=translate_one_page, args=(i, result))
                 threads.append(t)
                 t.start()
@@ -445,7 +617,6 @@ class TranslateApi:
             for t in threads:
                 t.join()
         else:
-            # translate the text sequentially
             for i, result in tqdm(
                 enumerate(results), leave=False, desc="Translating pages"
             ):
@@ -478,12 +649,11 @@ class TranslateApi:
         elif isinstance(render_engine, ReportLabRender):
             if render_mode is None:
                 render_mode = render_engine.render_mode
-            render_engine.save_pdf(
-                render_mode, pdf_path, p_from, add_blank_page
-            )
+            render_engine.save_pdf(render_mode, pdf_path, p_from, add_blank_page)
         else:
             raise NotImplementedError("Render engine not implemented")
 
+
 if __name__ == "__main__":
-    translate_api = TranslateApi(enable_gui=True)
+    translate_api = TranslateApi(enable_api=True)
     translate_api.run()

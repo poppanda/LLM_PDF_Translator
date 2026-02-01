@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Translator</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=14">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF Translator</h1>
+            <p class="subtitle">Translate PDF files while preserving layout</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="upload">Upload & Translate</button>
+            <button class="tab-button" data-tab="download">Download & Translate</button>
+            <button class="tab-button" data-tab="results">Results</button>
+        </div>
+
+        <!-- Upload & Translate Tab -->
+        <div id="upload-tab" class="tab-content active">
+            <div class="card">
+                <h2>Upload PDF File</h2>
+                <form id="upload-form">
+                    <div class="form-group">
+                        <label for="file-input">Select PDF File</label>
+                        <input type="file" id="file-input" accept=".pdf" required>
+                        <span class="file-name" id="file-name">No file selected</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="from-lang-upload">From Language</label>
+                            <select id="from-lang-upload" required>
+                                <option value="English">English</option>
+                                <option value="Chinese">Chinese</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Korean">Korean</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Spanish">Spanish</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="to-lang-upload">To Language</label>
+                            <select id="to-lang-upload" required>
+                                <option value="Chinese">Chinese</option>
+                                <option value="English">English</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Korean">Korean</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Spanish">Spanish</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="translate-all-upload" checked>
+                            Translate All Pages
+                        </label>
+                    </div>
+
+                    <div class="form-row page-range" id="page-range-upload" style="display: none;">
+                        <div class="form-group">
+                            <label for="from-page-upload">From Page</label>
+                            <input type="number" id="from-page-upload" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="to-page-upload">To Page</label>
+                            <input type="number" id="to-page-upload" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="render-mode-upload">Render Mode</label>
+                            <select id="render-mode-upload">
+                                <option value="interleave">Interleave</option>
+                                <option value="side_by_side">Side by Side</option>
+                                <option value="translation_only">Translation Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="add-blank-page-upload" checked>
+                                Add Blank Pages (for printing)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="output-path-header">
+                            <label for="output-path-display-upload">Output Path</label>
+                            <label class="custom-path-toggle">
+                                <input type="checkbox" id="custom-output-path-upload">
+                                Use Custom Output Path
+                            </label>
+                        </div>
+                        <div class="path-selector">
+                            <input type="text" id="output-path-display-upload" readonly placeholder="Loading...">
+                            <button type="button" class="btn btn-secondary" id="browse-btn-upload" disabled>Browse</button>
+                        </div>
+                        <input type="hidden" id="output-path-upload">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Translate PDF</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+
+                    <!-- Summary Section -->
+                    <div class="summary-section" id="upload-summary">
+                        <div class="summary-title">Summary</div>
+                        <div class="summary-content">
+                            <div class="summary-row">
+                                <span class="summary-label">Source File:</span>
+                                <span class="summary-value" id="summary-source-upload">No file selected</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Output Path:</span>
+                                <span class="summary-value" id="summary-output-upload">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Translation:</span>
+                                <span class="summary-value" id="summary-lang-upload">English → Chinese</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Page Range:</span>
+                                <span class="summary-value" id="summary-pages-upload">All pages</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Render Mode:</span>
+                                <span class="summary-value" id="summary-render-upload">Interleave</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Add Blank Pages:</span>
+                                <span class="summary-value" id="summary-blank-upload">Yes</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Download & Translate Tab -->
+        <div id="download-tab" class="tab-content">
+            <div class="card">
+                <h2>Download PDF from URL</h2>
+                <form id="download-form">
+                    <div class="form-group">
+                        <label for="pdf-url">PDF URL</label>
+                        <input type="url" id="pdf-url" placeholder="https://example.com/document.pdf" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file-name">File Name</label>
+                        <input type="text" id="file-name-input" placeholder="document.pdf" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="overwrite" checked>
+                            Overwrite if exists
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="from-lang-download">From Language</label>
+                            <select id="from-lang-download" required>
+                                <option value="English">English</option>
+                                <option value="Chinese">Chinese</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Korean">Korean</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Spanish">Spanish</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="to-lang-download">To Language</label>
+                            <select id="to-lang-download" required>
+                                <option value="Chinese">Chinese</option>
+                                <option value="English">English</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Korean">Korean</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Spanish">Spanish</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="translate-all-download" checked>
+                            Translate All Pages
+                        </label>
+                    </div>
+
+                    <div class="form-row page-range" id="page-range-download" style="display: none;">
+                        <div class="form-group">
+                            <label for="from-page-download">From Page</label>
+                            <input type="number" id="from-page-download" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="to-page-download">To Page</label>
+                            <input type="number" id="to-page-download" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="render-mode-download">Render Mode</label>
+                            <select id="render-mode-download">
+                                <option value="interleave">Interleave</option>
+                                <option value="side_by_side">Side by Side</option>
+                                <option value="translation_only">Translation Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="add-blank-page-download" checked>
+                                Add Blank Pages
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="suffix">File Suffix</label>
+                        <input type="text" id="suffix" value="_translated">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="output-path-header">
+                            <label for="output-path-display-download">Output Path</label>
+                            <label class="custom-path-toggle">
+                                <input type="checkbox" id="custom-output-path-download">
+                                Use Custom Output Path
+                            </label>
+                        </div>
+                        <div class="path-selector">
+                            <input type="text" id="output-path-display-download" readonly placeholder="Loading...">
+                            <button type="button" class="btn btn-secondary" id="browse-btn-download" disabled>Browse</button>
+                        </div>
+                        <input type="hidden" id="output-path-download">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">Download & Translate</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+
+                    <!-- Summary Section -->
+                    <div class="summary-section" id="download-summary">
+                        <div class="summary-title">Summary</div>
+                        <div class="summary-content">
+                            <div class="summary-row">
+                                <span class="summary-label">Source URL:</span>
+                                <span class="summary-value" id="summary-source-download">No URL entered</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Output Path:</span>
+                                <span class="summary-value" id="summary-output-download">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Translation:</span>
+                                <span class="summary-value" id="summary-lang-download">English → Chinese</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Page Range:</span>
+                                <span class="summary-value" id="summary-pages-download">All pages</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Render Mode:</span>
+                                <span class="summary-value" id="summary-render-download">Interleave</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">File Suffix:</span>
+                                <span class="summary-value" id="summary-suffix-download">_translated</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="results-tab" class="tab-content">
+            <div class="card">
+                <div class="results-header">
+                    <h2>Translation Results</h2>
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="results-table" class="resizable-table">
+                        <thead>
+                            <tr>
+                                <th class="resizable">File Name<div class="resize-handle"></div></th>
+                                <th class="resizable">Status<div class="resize-handle"></div></th>
+                                <th class="resizable">Source Path<div class="resize-handle"></div></th>
+                                <th class="resizable">Target Path<div class="resize-handle"></div></th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody">
+                            <tr>
+                                <td colspan="5" class="no-data">Click refresh to load results</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Area -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <!-- File Browser Modal -->
+    <div id="file-browser-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Output Directory</h2>
+                <button class="modal-close" id="close-browser">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Current Path -->
+                <div class="current-path">
+                    <label>Current Path:</label>
+                    <div class="path-display">
+                        <span id="current-path-text">/</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="browser-toolbar">
+                    <button class="btn btn-secondary" id="go-parent" title="Go to parent directory">
+                        <span>⬆️ Parent</span>
+                    </button>
+                    <button class="btn btn-secondary" id="refresh-browser" title="Refresh">
+                        <span>🔄 Refresh</span>
+                    </button>
+                    <button class="btn btn-secondary" id="new-folder-btn" title="Create new folder">
+                        <span>📁 New Folder</span>
+                    </button>
+                </div>
+
+                <!-- New Folder Input (hidden by default) -->
+                <div class="new-folder-section" id="new-folder-section" style="display: none;">
+                    <input type="text" id="new-folder-name" placeholder="Enter folder name">
+                    <button class="btn btn-primary" id="create-folder-btn">Create</button>
+                    <button class="btn btn-secondary" id="cancel-folder-btn">Cancel</button>
+                </div>
+
+                <!-- File List -->
+                <div class="file-list-container">
+                    <div class="file-list" id="file-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-select">Cancel</button>
+                <button class="btn btn-primary" id="confirm-select">Select This Directory</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=12"></script>
+    <script src="/static/js/file-browser.js?v=12"></script>
+</body>
+</html>

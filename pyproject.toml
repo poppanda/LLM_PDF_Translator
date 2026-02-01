@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11, <3.12"
 dependencies = [
-    "gradio>=5.29.1",
     "loguru>=0.7.3",
     "matplotlib>=3.10.3",
     "onnxruntime-gpu>=1.22.0",
