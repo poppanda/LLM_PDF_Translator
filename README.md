@@ -31,6 +31,26 @@ This repository is inspired by [ppisljar/pdf-translator](https://github.com/ppis
   <img src="./assets/download_translate.png" width=70%>
 </p>
 
+<h5 align="center">
+   Model Setting Page: change the setting in gui
+</h5>
+
+<p align="center">
+  <img src="./assets/model_settings-1.png" width=70%>
+</p>
+
+<p align="center">
+  <img src="./assets/model_settings-2.png" width=70%>
+</p>
+
+<h5 align="center">
+   OCR Models Page: download ocr models
+</h5>
+
+<p align="center">
+  <img src="./assets/ocr_model_download.png" width=70%>
+</p>
+
 ## Features
 
 - translate PDF files while preserving layout
