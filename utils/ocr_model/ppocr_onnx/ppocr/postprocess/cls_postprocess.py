@@ -28,8 +28,8 @@ class ClsPostProcess(object):
         if label_list is None:
             label_list = {idx: idx for idx in range(preds.shape[-1])}
 
-        if isinstance(preds, paddle.Tensor):
-            preds = preds.numpy()
+        # if isinstance(preds, paddle.Tensor):
+        #     preds = preds.numpy()
 
         pred_idxs = preds.argmax(axis=1)
         decode_out = [(label_list[idx], preds[i, idx])

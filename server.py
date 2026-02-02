@@ -31,7 +31,20 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.layout_model import Layout
 from utils.database.file_db import FileDatabase, FileStatus
 from utils.api_utils import TranslateRequest
+from utils.paddle_model_manager import (
+    get_paddle_model_manager,
+    get_available_models,
+    get_ocr_model_presets,
+    get_downloaded_models,
+    get_model_sets_with_info,
+    get_rec_model_dict_mapping,
+    get_available_dictionaries,
+    PADDLE_MODELS,
+    MODEL_SETS,
+)
 from threading import Thread
+import asyncio
+import yaml
 
 logger.remove()
 logger.add(sys.stderr, level="INFO")
@@ -47,6 +60,36 @@ from modules import (
 
 
 cfg = load_config("config.yaml", "config.dev.yaml")
+
+
+# Validate OCR configuration - ensure dictionary file exists
+def _validate_ocr_config(config: dict) -> dict:
+    """Validate OCR config and fix missing dictionary files."""
+    ocr_cfg = config.get("ocr", {})
+    model_dir = Path(ocr_cfg.get("model_dir", "models/paddle-ocr"))
+    rec_cfg = ocr_cfg.get("rec", {})
+
+    char_dict = rec_cfg.get("char_dict", "en_dict.txt")
+    dict_path = model_dir / char_dict
+
+    if not dict_path.exists():
+        logger.warning(f"Dictionary file not found: {dict_path}")
+        # Try to find a fallback dictionary
+        fallback_dicts = ["en_dict.txt", "ch_dict.txt"]
+        for fallback in fallback_dicts:
+            fallback_path = model_dir / fallback
+            if fallback_path.exists():
+                logger.warning(f"Using fallback dictionary: {fallback}")
+                config["ocr"]["rec"]["char_dict"] = fallback
+                break
+        else:
+            logger.error("No dictionary files found. OCR may not work correctly.")
+
+    return config
+
+
+cfg = _validate_ocr_config(cfg)
+
 translator = load_translator(cfg["translator"])
 logger.info(f"Got translator {translator}")
 render_engine = load_render_engine(cfg["render"])
@@ -192,6 +235,76 @@ class TranslateApi:
                 response_class=JSONResponse,
             )
 
+            # PaddleOCR Model Management APIs
+            self.app.add_api_route(
+                "/get_paddle_models/",
+                self.get_paddle_models,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/get_paddle_model_status/",
+                self.get_paddle_model_status,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/download_paddle_model/",
+                self.download_paddle_model,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/download_paddle_model_set/",
+                self.download_paddle_model_set,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/delete_paddle_model/",
+                self.delete_paddle_model,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+
+            # OCR Configuration APIs
+            self.app.add_api_route(
+                "/get_ocr_config/",
+                self.get_ocr_config,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/set_ocr_config/",
+                self.set_ocr_config,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/get_ocr_presets/",
+                self.get_ocr_presets,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/get_rec_model_dict_mapping/",
+                self.get_rec_model_dict_mapping,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/get_available_dictionaries/",
+                self.get_available_dictionaries,
+                methods=["GET"],
+                response_class=JSONResponse,
+            )
+            self.app.add_api_route(
+                "/download_preset_models/",
+                self.download_preset_models,
+                methods=["POST"],
+                response_class=JSONResponse,
+            )
+
             # Add root route for HTML frontend
             @self.app.get("/", response_class=HTMLResponse)
             async def root():
@@ -202,6 +315,24 @@ class TranslateApi:
                 return "<h1>PDF Translator</h1><p>Frontend not found. Please ensure static/index.html exists.</p>"
 
             logger.info("HTML Frontend enabled at http://localhost:8765")
+
+    def _save_config(self, section: str, data: dict):
+        """Save configuration section to config.yaml."""
+        try:
+            config_path = Path("config.yaml")
+            if config_path.exists():
+                with open(config_path, "r", encoding="utf-8") as f:
+                    file_config = yaml.safe_load(f) or {}
+            else:
+                file_config = {}
+            
+            file_config[section] = data
+            
+            with open(config_path, "w", encoding="utf-8") as f:
+                yaml.dump(file_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            logger.info(f"Saved configuration for '{section}' to config.yaml")
+        except Exception as e:
+            logger.error(f"Failed to save config: {e}")
 
     def run(self):
         """Run the API server"""
@@ -383,6 +514,7 @@ class TranslateApi:
                     "download_folder": download_folder,
                     "translate_folder": translate_folder,
                     "temp_dir": str(self.temp_dir_name),
+                    "layout_config": cfg.get("layout", {}),
                 }
             )
         except Exception as e:
@@ -425,6 +557,9 @@ class TranslateApi:
             # Reinitialize translator
             translator = load_translator(cfg["translator"])
             logger.info(f"Translator updated to {provider} with model {model}")
+
+            # Save to config.yaml
+            self._save_config("translator", cfg["translator"])
 
             return JSONResponse(
                 content={
@@ -629,6 +764,344 @@ class TranslateApi:
         except Exception as e:
             logger.error(f"Error deleting directory: {e}")
             return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    # ============ PaddleOCR Model Management ============
+
+    async def get_paddle_models(self):
+        """Get all available PaddleOCR models and their status."""
+        try:
+            manager = get_paddle_model_manager()
+            models_status = manager.get_all_models_status()
+            model_sets_info = get_model_sets_with_info()
+
+            # Add download status to each model set
+            for set_info in model_sets_info:
+                models_in_set = set_info["models"]
+                downloaded_count = sum(
+                    1 for m in models_in_set if manager.is_model_downloaded(m)
+                )
+                set_info["downloaded_count"] = downloaded_count
+                set_info["total_count"] = len(models_in_set)
+                set_info["is_complete"] = downloaded_count == len(models_in_set)
+
+            return JSONResponse(
+                content={
+                    "models": models_status,
+                    "model_sets": model_sets_info,
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error getting paddle models: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def get_paddle_model_status(self, model_key: str = Form(...)):
+        """Get status of a specific PaddleOCR model."""
+        try:
+            manager = get_paddle_model_manager()
+            status = manager.get_model_status(model_key)
+            return JSONResponse(content=status)
+        except Exception as e:
+            logger.error(f"Error getting model status: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def download_paddle_model(self, model_key: str = Form(...)):
+        """Download a specific PaddleOCR model."""
+        try:
+            manager = get_paddle_model_manager()
+
+            # Check if model exists
+            if model_key not in PADDLE_MODELS:
+                return JSONResponse(
+                    content={"error": f"Unknown model: {model_key}", "success": False},
+                    status_code=400,
+                )
+
+            # Check if already downloaded
+            if manager.is_model_downloaded(model_key):
+                return JSONResponse(
+                    content={
+                        "success": True,
+                        "message": "Model already downloaded",
+                        "path": str(manager.get_model_path(model_key)),
+                    }
+                )
+
+            # Start download
+            logger.info(f"Starting download for model: {model_key}")
+            result = await manager.download_model(model_key)
+
+            if result.get("success"):
+                return JSONResponse(content=result)
+            else:
+                return JSONResponse(content=result, status_code=500)
+
+        except Exception as e:
+            logger.error(f"Error downloading model: {e}")
+            return JSONResponse(
+                content={"error": str(e), "success": False}, status_code=500
+            )
+
+    async def download_paddle_model_set(self, set_name: str = Form(...)):
+        """Download a predefined set of PaddleOCR models."""
+        try:
+            manager = get_paddle_model_manager()
+
+            # Check if set exists
+            if set_name not in MODEL_SETS:
+                return JSONResponse(
+                    content={
+                        "error": f"Unknown model set: {set_name}",
+                        "success": False,
+                    },
+                    status_code=400,
+                )
+
+            logger.info(f"Starting download for model set: {set_name}")
+            result = await manager.download_model_set(set_name)
+
+            return JSONResponse(content=result)
+
+        except Exception as e:
+            logger.error(f"Error downloading model set: {e}")
+            return JSONResponse(
+                content={"error": str(e), "success": False}, status_code=500
+            )
+
+    async def delete_paddle_model(self, model_key: str = Form(...)):
+        """Delete a downloaded PaddleOCR model."""
+        try:
+            manager = get_paddle_model_manager()
+            result = manager.delete_model(model_key)
+
+            if result.get("success"):
+                return JSONResponse(content=result)
+            else:
+                return JSONResponse(content=result, status_code=400)
+
+        except Exception as e:
+            logger.error(f"Error deleting model: {e}")
+            return JSONResponse(
+                content={"error": str(e), "success": False}, status_code=500
+            )
+
+    # ============ OCR Configuration ============
+
+    async def get_ocr_config(self):
+        """Get current OCR configuration."""
+        try:
+            ocr_cfg = cfg.get("ocr", {})
+            manager = get_paddle_model_manager()
+            downloaded = get_downloaded_models()
+
+            return JSONResponse(
+                content={
+                    "config": ocr_cfg,
+                    "downloaded_models": downloaded,
+                    "model_dir": ocr_cfg.get("model_dir", "models/paddle-ocr"),
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error getting OCR config: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def set_ocr_config(
+        self,
+        preset: str = Form(None),
+        det_model: str = Form(None),
+        det_algorithm: str = Form(None),
+        rec_model: str = Form(None),
+        rec_algorithm: str = Form(None),
+        rec_char_dict: str = Form(None),
+        cls_enabled: bool = Form(False),
+        cls_model: str = Form(None),
+    ):
+        """Update OCR configuration."""
+        global cfg
+        try:
+            model_dir = Path(cfg.get("ocr", {}).get("model_dir", "models/paddle-ocr"))
+            warnings = []
+
+            # If preset is provided, use preset config
+            if preset:
+                presets = get_ocr_model_presets()
+                if preset not in presets:
+                    return JSONResponse(
+                        content={
+                            "error": f"Unknown preset: {preset}",
+                            "success": False,
+                        },
+                        status_code=400,
+                    )
+                preset_cfg = presets[preset]
+                cfg["ocr"]["det"] = preset_cfg["det"].copy()
+                cfg["ocr"]["rec"] = preset_cfg["rec"].copy()
+                cfg["ocr"]["cls"] = preset_cfg.get("cls", {"enabled": False}).copy()
+
+                # Override cls.enabled with user's checkbox selection
+                cfg["ocr"]["cls"]["enabled"] = cls_enabled
+
+                # Check if dictionary file exists
+                dict_file = preset_cfg["rec"].get("char_dict")
+                if dict_file and not (model_dir / dict_file).exists():
+                    warnings.append(
+                        f"Dictionary file '{dict_file}' not found. Download the required models first."
+                    )
+
+                logger.info(
+                    f"OCR config updated to preset: {preset} (cls_enabled={cls_enabled})"
+                )
+            else:
+                # Manual configuration
+                if det_model:
+                    cfg["ocr"]["det"]["model"] = det_model
+                if det_algorithm:
+                    cfg["ocr"]["det"]["algorithm"] = det_algorithm
+                if rec_model:
+                    cfg["ocr"]["rec"]["model"] = rec_model
+                if rec_algorithm:
+                    cfg["ocr"]["rec"]["algorithm"] = rec_algorithm
+                if rec_char_dict:
+                    # Check if dictionary file exists
+                    if not (model_dir / rec_char_dict).exists():
+                        warnings.append(
+                            f"Dictionary file '{rec_char_dict}' not found. Download the required models first."
+                        )
+                    cfg["ocr"]["rec"]["char_dict"] = rec_char_dict
+                cfg["ocr"]["cls"]["enabled"] = cls_enabled
+                if cls_model:
+                    cfg["ocr"]["cls"]["model"] = cls_model
+                logger.info("OCR config updated manually")
+
+            # Save to config.yaml
+            self._save_config("ocr", cfg["ocr"])
+
+            response = {
+                "success": True,
+                "message": "OCR configuration updated",
+                "config": cfg["ocr"],
+            }
+            if warnings:
+                response["warnings"] = warnings
+
+            return JSONResponse(content=response)
+        except Exception as e:
+            logger.error(f"Error setting OCR config: {e}")
+            return JSONResponse(
+                content={"error": str(e), "success": False}, status_code=500
+            )
+
+    async def get_ocr_presets(self):
+        """Get available OCR model presets."""
+        try:
+            presets = get_ocr_model_presets()
+            manager = get_paddle_model_manager()
+
+            # Check which presets have all required models downloaded
+            presets_with_status = {}
+            for key, preset in presets.items():
+                required = preset.get("required_models", [])
+                all_downloaded = all(manager.is_model_downloaded(m) for m in required)
+                presets_with_status[key] = {
+                    **preset,
+                    "ready": all_downloaded,
+                    "missing_models": [
+                        m for m in required if not manager.is_model_downloaded(m)
+                    ],
+                }
+
+            return JSONResponse(content={"presets": presets_with_status})
+        except Exception as e:
+            logger.error(f"Error getting OCR presets: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def get_rec_model_dict_mapping(self):
+        """Get mapping from recognition model filename to its associated dictionary."""
+        try:
+            mapping = get_rec_model_dict_mapping()
+            return JSONResponse(content={"mapping": mapping})
+        except Exception as e:
+            logger.error(f"Error getting rec model dict mapping: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def get_available_dictionaries(self):
+        """Get list of available dictionary files."""
+        try:
+            ocr_cfg = cfg.get("ocr", {})
+            model_dir = ocr_cfg.get("model_dir", "models/paddle-ocr")
+            dictionaries = get_available_dictionaries(Path(model_dir))
+            return JSONResponse(content={"dictionaries": dictionaries})
+        except Exception as e:
+            logger.error(f"Error getting available dictionaries: {e}")
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+
+    async def download_preset_models(self, preset: str = Form(...)):
+        """Download all models required by a preset configuration."""
+        try:
+            presets = get_ocr_model_presets()
+            if preset not in presets:
+                return JSONResponse(
+                    content={
+                        "error": f"Unknown preset: {preset}",
+                        "success": False,
+                    },
+                    status_code=400,
+                )
+
+            preset_cfg = presets[preset]
+            required_models = preset_cfg.get("required_models", [])
+
+            if not required_models:
+                return JSONResponse(
+                    content={
+                        "error": f"Preset '{preset}' has no required models defined",
+                        "success": False,
+                    },
+                    status_code=400,
+                )
+
+            manager = get_paddle_model_manager()
+            results = []
+            all_success = True
+
+            for model_key in required_models:
+                if manager.is_model_downloaded(model_key):
+                    results.append(
+                        {
+                            "model": model_key,
+                            "success": True,
+                            "message": "Already downloaded",
+                        }
+                    )
+                else:
+                    logger.info(f"Downloading model for preset {preset}: {model_key}")
+                    result = await manager.download_model(model_key)
+                    results.append(
+                        {
+                            "model": model_key,
+                            "success": result.get("success", False),
+                            "message": result.get("message")
+                            or result.get("error", "Unknown error"),
+                        }
+                    )
+                    if not result.get("success"):
+                        all_success = False
+
+            return JSONResponse(
+                content={
+                    "success": all_success,
+                    "preset": preset,
+                    "results": results,
+                    "message": f"Downloaded models for preset '{preset}'"
+                    if all_success
+                    else "Some models failed to download",
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Error downloading preset models: {e}")
+            return JSONResponse(
+                content={"error": str(e), "success": False}, status_code=500
+            )
 
     def _init_translation(
         self,

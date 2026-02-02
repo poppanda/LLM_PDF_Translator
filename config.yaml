@@ -1,32 +1,33 @@
 translator:
-  type: ollama # openai / ollama / qwen
+  type: ollama
   api_key: YOUR-KEY-GOES-HERE
-  model: 'qwen2.5:32b'
-  # the following args are only for ollama and non multi-thread mode(the multi_thread.enable should be false)
-  # restart container before ocr and layout model to avoid high vram usage at local
-  restart_container: true 
-  container_name: 'ollama' # only for ollama, container name
-
+  model: qwen2.5:32b
+  restart_container: true
+  container_name: ollama
 layout:
-  type: 'dit'
-  device: 'cuda'
-
+  type: dit
+  device: cuda
 ocr:
-  type: 'paddle'
-  device: 'cuda'
-
+  type: paddle
+  device: cuda
+  model_dir: models/paddle-ocr
+  det:
+    model: ch_PP-OCRv4_det_infer.onnx
+    algorithm: DB
+  rec:
+    model: en_PP-OCRv4_rec_infer.onnx
+    algorithm: SVTR_LCNet
+    char_dict: en_dict_v4.txt
+  cls:
+    enabled: false
 render:
-  # type: 'simple'
-  type: 'reportlab'
-  font_name: 'STSong'
-  font_path: './fonts/STSong.ttf'
-  render_mode: INTERLEAVE # TRANSLATION_ONLY / SIDE_BY_SIDE / INTERLEAVE
-
+  type: reportlab # or 'simple'
+  font_name: STSong
+  font_path: ./fonts/STSong.ttf
+  render_mode: INTERLEAVE
 multi_thread:
   enable: false
-  # num_thread: 4
-
 gui:
-  database_name: 'pdf_translator_files.db'
-  download_folder: 'download'
-  translate_folder: 'translate'
+  database_name: pdf_translator_files.db
+  download_folder: download
+  translate_folder: translate

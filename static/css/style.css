@@ -326,6 +326,7 @@ td {
 /* Settings Page */
 .settings-container {
     max-width: 600px;
+    margin: 0 auto;
 }
 
 .input-with-toggle {
@@ -900,5 +901,450 @@ td {
         width: 100%;
         margin-top: 8px;
         justify-content: flex-end;
+    }
+}
+
+/* ============ OCR Models Tab Styles ============ */
+
+.tab-description {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+}
+
+/* Model Sets Section */
+.model-sets-section {
+    margin-bottom: 32px;
+}
+
+.model-sets-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.section-hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.model-sets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.model-set-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.model-set-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.set-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.set-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.set-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--primary-color);
+    color: white;
+    font-weight: 500;
+}
+
+.set-badge-new {
+    background: var(--success-color);
+}
+
+.set-description {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.set-models {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-family: monospace;
+    background: var(--bg-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+/* Model Filter Section */
+.model-filter-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.model-filter-section h3 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Models Table */
+.models-table-container {
+    margin-top: 16px;
+}
+
+.models-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.models-table th,
+.models-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.models-table th {
+    background: var(--bg-color);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.models-table tr:hover {
+    background: rgba(99, 102, 241, 0.03);
+}
+
+/* Model Name Cell */
+.cell-model {
+    min-width: 200px;
+}
+
+.model-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.model-desc {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+/* Preset Download Container */
+.preset-download-container {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fef3c7;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.preset-download-container .download-hint {
+    color: #b45309;
+    font-size: 0.85rem;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: white;
+    border: none;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+/* Model Dictionary Info */
+.model-dict {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.model-dict.dict-ready {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.model-dict.dict-missing {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.dict-icon {
+    font-size: 0.7rem;
+}
+
+/* Version Badge */
+.version-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.version-v3 {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.version-v4 {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.version-v5 {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.version-unknown {
+    background: var(--bg-color);
+    color: var(--text-secondary);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-icon {
+    font-size: 0.9rem;
+}
+
+.status-downloaded {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-downloading {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.status-not-downloaded {
+    background: var(--bg-color);
+    color: var(--text-secondary);
+}
+
+.status-error {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-converting {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+/* Format badges */
+.format-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.format-onnx {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.format-paddle {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+/* Loading placeholder */
+.loading-placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+/* Downloaded button style */
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    cursor: default;
+}
+
+.btn-success:hover {
+    background: var(--success-color);
+}
+
+/* Download Progress */
+.download-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--bg-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Spinner Small */
+.spinner-small {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+/* Cell Styles */
+.cell-version,
+.cell-type,
+.cell-lang,
+.cell-size {
+    white-space: nowrap;
+}
+
+.cell-type,
+.cell-lang {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.cell-size {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.cell-action {
+    white-space: nowrap;
+}
+
+/* Responsive OCR Models */
+@media (max-width: 768px) {
+    .model-sets-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .model-filter-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .models-table {
+        font-size: 0.85rem;
+    }
+
+    .models-table th,
+    .models-table td {
+        padding: 8px;
+    }
+
+    .cell-model {
+        min-width: 150px;
+    }
+
+    .model-desc {
+        display: none;
     }
 }

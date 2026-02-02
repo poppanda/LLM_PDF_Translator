@@ -10,7 +10,15 @@ const ENDPOINTS = {
     deleteDirectory: '/delete_directory/',
     getTranslatorConfig: '/get_translator_config/',
     setTranslatorConfig: '/set_translator_config/',
-    fetchModels: '/fetch_models/'
+    fetchModels: '/fetch_models/',
+    // OCR Configuration endpoints
+    getOcrConfig: '/get_ocr_config/',
+    setOcrConfig: '/set_ocr_config/',
+    getOcrPresets: '/get_ocr_presets/',
+    getPaddleModels: '/get_paddle_models/',
+    getRecModelDictMapping: '/get_rec_model_dict_mapping/',
+    getAvailableDictionaries: '/get_available_dictionaries/',
+    downloadPresetModels: '/download_preset_models/'
 };
 
 // Store default paths (use window to make it globally accessible)
@@ -182,6 +190,15 @@ function updateUploadSummary() {
     const provider = document.getElementById('current-provider')?.textContent || '-';
     const model = document.getElementById('current-model')?.textContent || '-';
     document.getElementById('summary-model-upload').textContent = provider !== '-' ? `${provider} / ${model}` : '-';
+
+    // Layout info
+    const layout = window.defaultPaths.layout_config?.type || '-';
+    document.getElementById('summary-layout-upload').textContent = layout;
+
+    // OCR info
+    const ocrDet = document.getElementById('current-ocr-det')?.textContent || '-';
+    const ocrRec = document.getElementById('current-ocr-rec')?.textContent || '-';
+    document.getElementById('summary-ocr-upload').textContent = (ocrDet !== '-' || ocrRec !== '-') ? `Det: ${ocrDet} / Rec: ${ocrRec}` : '-';
     
     // Page range
     const translateAll = document.getElementById('translate-all-upload').checked;
@@ -222,6 +239,15 @@ function updateDownloadSummary() {
     const provider = document.getElementById('current-provider')?.textContent || '-';
     const model = document.getElementById('current-model')?.textContent || '-';
     document.getElementById('summary-model-download').textContent = provider !== '-' ? `${provider} / ${model}` : '-';
+
+    // Layout info
+    const layout = window.defaultPaths.layout_config?.type || '-';
+    document.getElementById('summary-layout-download').textContent = layout;
+
+    // OCR info
+    const ocrDet = document.getElementById('current-ocr-det')?.textContent || '-';
+    const ocrRec = document.getElementById('current-ocr-rec')?.textContent || '-';
+    document.getElementById('summary-ocr-download').textContent = (ocrDet !== '-' || ocrRec !== '-') ? `Det: ${ocrDet} / Rec: ${ocrRec}` : '-';
     
     // Page range
     const translateAll = document.getElementById('translate-all-download').checked;
@@ -472,6 +498,7 @@ async function loadDefaultPaths(retryCount = 0) {
             window.defaultPaths.download_folder = config.download_folder;
             window.defaultPaths.translate_folder = config.translate_folder;
             window.defaultPaths.temp_dir = config.temp_dir;
+            window.defaultPaths.layout_config = config.layout_config;
             
             // Update upload form display
             document.getElementById('output-path-display-upload').value = config.translate_folder;
@@ -809,3 +836,417 @@ async function loadCurrentTranslatorConfig() {
 
 // Initialize settings page when DOM is loaded
 document.addEventListener('DOMContentLoaded', initSettingsPage);
+
+// ============ OCR Settings ============
+
+let ocrPresets = {};
+let downloadedModels = [];
+let recModelDictMapping = {};  // Maps rec model filename -> dict filename
+let availableDictionaries = [];  // List of available dict files
+
+async function initOCRSettings() {
+    // Load rec model -> dict mapping
+    await loadRecModelDictMapping();
+    
+    // Load available dictionaries
+    await loadAvailableDictionaries();
+    
+    // Load OCR presets
+    await loadOCRPresets();
+    
+    // Load current OCR config
+    await loadCurrentOCRConfig();
+    
+    // Set up event listeners
+    document.getElementById('ocr-preset-select').addEventListener('change', onOCRPresetChange);
+    document.getElementById('ocr-rec-model').addEventListener('change', onRecModelChange);
+    document.getElementById('save-ocr-settings-btn').addEventListener('click', saveOCRSettings);
+}
+
+async function loadRecModelDictMapping() {
+    try {
+        const response = await fetch(ENDPOINTS.getRecModelDictMapping);
+        const data = await response.json();
+        if (data.mapping) {
+            recModelDictMapping = data.mapping;
+        }
+    } catch (error) {
+        console.error('Error loading rec model dict mapping:', error);
+    }
+}
+
+async function loadAvailableDictionaries() {
+    try {
+        const response = await fetch(ENDPOINTS.getAvailableDictionaries);
+        const data = await response.json();
+        if (data.dictionaries) {
+            availableDictionaries = data.dictionaries;
+            populateDictSelect();
+        }
+    } catch (error) {
+        console.error('Error loading available dictionaries:', error);
+    }
+}
+
+function populateDictSelect() {
+    const select = document.getElementById('ocr-char-dict');
+    select.innerHTML = '<option value="">-- Auto-detect from model --</option>';
+    
+    // Add available dictionaries
+    for (const dict of availableDictionaries) {
+        const option = document.createElement('option');
+        option.value = dict.filename;
+        
+        // Show status icon and language info
+        const statusIcon = dict.exists ? '' : ' (not downloaded)';
+        const langInfo = dict.language ? ` [${dict.language}]` : '';
+        option.textContent = `${dict.filename}${langInfo}${statusIcon}`;
+        
+        if (!dict.exists) {
+            option.style.color = '#999';
+        }
+        
+        select.appendChild(option);
+    }
+}
+
+function onRecModelChange(e) {
+    const recModel = e.target.value;
+    const dictSelect = document.getElementById('ocr-char-dict');
+    const hint = document.getElementById('ocr-char-dict-hint');
+    
+    if (recModel && recModel !== '__manual__') {
+        // Auto-detect dictionary based on rec model
+        const autoDict = recModelDictMapping[recModel];
+        if (autoDict) {
+            // Set the auto-detected dictionary
+            dictSelect.value = autoDict;
+            hint.textContent = `Auto-detected: ${autoDict}`;
+            hint.style.color = '#4caf50';
+        } else {
+            hint.textContent = 'No dictionary mapping found for this model';
+            hint.style.color = '#ff9800';
+        }
+    } else {
+        hint.textContent = 'Dictionary is auto-selected based on recognition model';
+        hint.style.color = '';
+    }
+}
+
+async function loadOCRPresets() {
+    try {
+        const response = await fetch(ENDPOINTS.getOcrPresets);
+        const data = await response.json();
+        
+        if (data.presets) {
+            ocrPresets = data.presets;
+            populateOCRPresetSelect();
+        }
+    } catch (error) {
+        console.error('Error loading OCR presets:', error);
+    }
+}
+
+function populateOCRPresetSelect() {
+    const select = document.getElementById('ocr-preset-select');
+    select.innerHTML = '<option value="">-- Select a preset --</option>';
+    
+    for (const [key, preset] of Object.entries(ocrPresets)) {
+        const option = document.createElement('option');
+        option.value = key;
+        
+        const readyIcon = preset.ready ? '' : '(needs download) ';
+        option.textContent = `${preset.name} ${readyIcon}- ${preset.description}`;
+        
+        if (!preset.ready) {
+            option.style.color = '#999';
+        }
+        
+        select.appendChild(option);
+    }
+    
+    // Add manual option
+    const manualOption = document.createElement('option');
+    manualOption.value = '__manual__';
+    manualOption.textContent = '-- Configure Manually --';
+    select.appendChild(manualOption);
+}
+
+async function loadCurrentOCRConfig() {
+    try {
+        // Load downloaded models for dropdown
+        const modelsResponse = await fetch(ENDPOINTS.getPaddleModels);
+        const modelsData = await modelsResponse.json();
+        
+        if (modelsData.models) {
+            downloadedModels = modelsData.models.filter(m => m.status === 'downloaded');
+            populateOCRModelSelects();
+        }
+        
+        // Refresh available dictionaries (in case new ones were downloaded)
+        await loadAvailableDictionaries();
+        
+        // Load current config
+        const configResponse = await fetch(ENDPOINTS.getOcrConfig);
+        const configData = await configResponse.json();
+        
+        if (configData.config) {
+            updateOCRConfigDisplay(configData.config);
+            
+            // Set form values
+            const detModel = configData.config.det?.model || '';
+            const recModel = configData.config.rec?.model || '';
+            const charDict = configData.config.rec?.char_dict || '';
+            
+            document.getElementById('ocr-det-model').value = detModel;
+            document.getElementById('ocr-rec-model').value = recModel;
+            document.getElementById('ocr-char-dict').value = charDict;
+            
+            // Update dictionary hint based on current rec model
+            const hint = document.getElementById('ocr-char-dict-hint');
+            if (charDict) {
+                const autoDict = recModelDictMapping[recModel];
+                if (autoDict === charDict) {
+                    hint.textContent = `Auto-detected: ${charDict}`;
+                    hint.style.color = '#4caf50';
+                } else {
+                    hint.textContent = `Custom dictionary: ${charDict}`;
+                    hint.style.color = '#2196f3';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading OCR config:', error);
+    }
+}
+
+function populateOCRModelSelects() {
+    const detSelect = document.getElementById('ocr-det-model');
+    const recSelect = document.getElementById('ocr-rec-model');
+    
+    // Clear existing options
+    detSelect.innerHTML = '<option value="">-- Select detection model --</option>';
+    recSelect.innerHTML = '<option value="">-- Select recognition model --</option>';
+    
+    // Add downloaded models
+    for (const model of downloadedModels) {
+        const filename = model.info?.filename || model.model_key;
+        const version = model.info?.version?.toUpperCase() || '';
+        
+        if (model.info?.model_type === 'det') {
+            const option = document.createElement('option');
+            option.value = filename;
+            option.textContent = `${filename} (${version})`;
+            detSelect.appendChild(option);
+        } else if (model.info?.model_type === 'rec') {
+            const option = document.createElement('option');
+            option.value = filename;
+            
+            // Show associated dictionary for rec models
+            const dictFile = recModelDictMapping[filename];
+            const dictInfo = dictFile ? ` -> ${dictFile}` : '';
+            option.textContent = `${filename} (${version})${dictInfo}`;
+            
+            recSelect.appendChild(option);
+        }
+    }
+}
+
+function onOCRPresetChange(e) {
+    const presetKey = e.target.value;
+    const downloadBtnContainer = document.getElementById('preset-download-container');
+    
+    // Hide download button by default
+    if (downloadBtnContainer) {
+        downloadBtnContainer.style.display = 'none';
+    }
+    
+    if (presetKey === '' || presetKey === '__manual__') {
+        // Reset hint when switching to manual
+        const hint = document.getElementById('ocr-char-dict-hint');
+        hint.textContent = 'Dictionary is auto-selected based on recognition model';
+        hint.style.color = '';
+        return;
+    }
+    
+    const preset = ocrPresets[presetKey];
+    if (!preset) return;
+    
+    // Check if models are downloaded
+    if (!preset.ready) {
+        const missing = preset.missing_models.join(', ');
+        showNotification(`Missing models: ${missing}. Click "Download Preset Models" to download.`, 'warning');
+        
+        // Show download button
+        if (downloadBtnContainer) {
+            downloadBtnContainer.style.display = 'block';
+            downloadBtnContainer.dataset.preset = presetKey;
+        }
+    }
+    
+    // Set form values from preset
+    if (preset.det?.model) {
+        document.getElementById('ocr-det-model').value = preset.det.model;
+    }
+    if (preset.rec?.model) {
+        document.getElementById('ocr-rec-model').value = preset.rec.model;
+    }
+    
+    // Set dictionary and update hint
+    const dictSelect = document.getElementById('ocr-char-dict');
+    const hint = document.getElementById('ocr-char-dict-hint');
+    
+    if (preset.rec?.char_dict) {
+        dictSelect.value = preset.rec.char_dict;
+        hint.textContent = `Preset dictionary: ${preset.rec.char_dict}`;
+        hint.style.color = '#4caf50';
+    } else {
+        dictSelect.value = '';
+        hint.textContent = 'Dictionary is auto-selected based on recognition model';
+        hint.style.color = '';
+    }
+}
+
+let isDownloadingPreset = false;
+
+async function downloadPresetModels() {
+    // Prevent double-click
+    if (isDownloadingPreset) {
+        showNotification('Download already in progress, please wait...', 'info');
+        return;
+    }
+    
+    const container = document.getElementById('preset-download-container');
+    const presetKey = container?.dataset.preset;
+    
+    if (!presetKey) {
+        showNotification('No preset selected', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('download-preset-btn');
+    const hint = container.querySelector('.download-hint');
+    
+    isDownloadingPreset = true;
+    if (btn) {
+        toggleSpinner(btn, true);
+        btn.disabled = true;
+    }
+    if (hint) {
+        hint.textContent = 'Downloading models... This may take a few minutes.';
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('preset', presetKey);
+        
+        const response = await fetch(ENDPOINTS.downloadPresetModels, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(`Models for preset "${presetKey}" downloaded successfully!`, 'success');
+            // Refresh presets and config
+            await loadOCRPresets();
+            await loadCurrentOCRConfig();
+            // Hide download button
+            container.style.display = 'none';
+        } else {
+            // Show detailed error including individual model results
+            let errorMsg = data.error || data.message || 'Download failed';
+            if (data.results) {
+                const failed = data.results.filter(r => !r.success);
+                if (failed.length > 0) {
+                    errorMsg = `Failed models: ${failed.map(r => `${r.model} (${r.message})`).join(', ')}`;
+                }
+            }
+            throw new Error(errorMsg);
+        }
+    } catch (error) {
+        showNotification(`Error: ${error.message}`, 'error');
+        if (hint) {
+            hint.textContent = 'Download failed. Please try again.';
+        }
+    } finally {
+        isDownloadingPreset = false;
+        if (btn) {
+            toggleSpinner(btn, false);
+            btn.disabled = false;
+        }
+    }
+}
+
+function updateOCRConfigDisplay(config) {
+    document.getElementById('current-ocr-det').textContent = config.det?.model || '-';
+    document.getElementById('current-ocr-rec').textContent = config.rec?.model || '-';
+    document.getElementById('current-ocr-dict').textContent = config.rec?.char_dict || '-';
+    
+    // Update summaries with new OCR info
+    updateUploadSummary();
+    updateDownloadSummary();
+}
+
+async function saveOCRSettings() {
+    const saveBtn = document.getElementById('save-ocr-settings-btn');
+    toggleSpinner(saveBtn, true);
+    
+    try {
+        const presetValue = document.getElementById('ocr-preset-select').value;
+        const formData = new FormData();
+        
+        if (presetValue && presetValue !== '__manual__') {
+            // Use preset
+            formData.append('preset', presetValue);
+        } else {
+            // Manual configuration
+            const detModel = document.getElementById('ocr-det-model').value;
+            const recModel = document.getElementById('ocr-rec-model').value;
+            let charDict = document.getElementById('ocr-char-dict').value;
+            
+            if (detModel && detModel !== '__manual__') {
+                formData.append('det_model', detModel);
+            }
+            if (recModel && recModel !== '__manual__') {
+                formData.append('rec_model', recModel);
+                
+                // Auto-detect dictionary if not manually selected
+                if (!charDict && recModelDictMapping[recModel]) {
+                    charDict = recModelDictMapping[recModel];
+                }
+            }
+            if (charDict) {
+                formData.append('rec_char_dict', charDict);
+            }
+        }
+        
+        const response = await fetch(ENDPOINTS.setOcrConfig, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.warnings && data.warnings.length > 0) {
+                showNotification(`Settings saved with warnings: ${data.warnings.join('; ')}`, 'warning');
+            } else {
+                showNotification('OCR settings saved successfully', 'success');
+            }
+            if (data.config) {
+                updateOCRConfigDisplay(data.config);
+            }
+        } else {
+            throw new Error(data.error || 'Failed to save OCR settings');
+        }
+    } catch (error) {
+        showNotification(`Error: ${error.message}`, 'error');
+    } finally {
+        toggleSpinner(saveBtn, false);
+    }
+}
+
+// Initialize OCR settings when page loads
+document.addEventListener('DOMContentLoaded', initOCRSettings);

@@ -5,14 +5,20 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11, <3.12"
 dependencies = [
+    "aiohttp>=3.13.3",
+    "fastapi>=0.128.0",
     "loguru>=0.7.3",
     "matplotlib>=3.10.3",
     "onnxruntime-gpu>=1.22.0",
     "openai>=2.8.1",
     "opencv-python>=4.11.0.86",
+    "opencv-python-headless>=4.13.0.90",
+    "paddle2onnx<2.0.0",
+    "paddlepaddle<3.0.0",
     "pdf2image>=1.17.0",
     "pyclipper>=1.3.0.post6",
     "pypdf2>=3.0.1",
+    "python-multipart>=0.0.22",
     "reportlab>=4.4.1",
     "scikit-image>=0.25.2",
     "shapely>=2.1.0",

@@ -11,9 +11,10 @@ class TranslateRequest:
     translate_all: bool
     p_from: int
     p_to: int
-    output_file_path: Optional[Path | str] = None,
-    render_mode: Optional[str] = None,
-    add_blank_page: bool = False,
+    output_file_path: Optional[Path | str] = None
+    render_mode: Optional[str] = None
+    add_blank_page: bool = False
+
     def extract(self):
         if isinstance(self.pdf_path, str):
             self.pdf_path = Path(self.pdf_path)

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Translator</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=18">
+    <link rel="stylesheet" href="/static/css/style.css?v=26">
 </head>
 <body>
     <div class="container">
@@ -19,6 +19,7 @@
             <button class="tab-button" data-tab="download">Download & Translate</button>
             <button class="tab-button" data-tab="results">Results</button>
             <button class="tab-button" data-tab="settings">Model Settings</button>
+            <button class="tab-button" data-tab="ocr-models">OCR Models</button>
         </div>
 
         <!-- Upload & Translate Tab -->
@@ -137,8 +138,16 @@
                                 <span class="summary-value" id="summary-lang-upload">English → Chinese</span>
                             </div>
                             <div class="summary-row">
-                                <span class="summary-label">Model:</span>
+                                <span class="summary-label">Translator:</span>
                                 <span class="summary-value" id="summary-model-upload">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Layout Model:</span>
+                                <span class="summary-value" id="summary-layout-upload">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">OCR Model:</span>
+                                <span class="summary-value" id="summary-ocr-upload">-</span>
                             </div>
                             <div class="summary-row">
                                 <span class="summary-label">Page Range:</span>
@@ -290,8 +299,16 @@
                                 <span class="summary-value" id="summary-lang-download">English → Chinese</span>
                             </div>
                             <div class="summary-row">
-                                <span class="summary-label">Model:</span>
+                                <span class="summary-label">Translator:</span>
                                 <span class="summary-value" id="summary-model-download">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">Layout Model:</span>
+                                <span class="summary-value" id="summary-layout-download">-</span>
+                            </div>
+                            <div class="summary-row">
+                                <span class="summary-label">OCR Model:</span>
+                                <span class="summary-value" id="summary-ocr-download">-</span>
                             </div>
                             <div class="summary-row">
                                 <span class="summary-label">Page Range:</span>
@@ -343,7 +360,7 @@
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content">
             <div class="card">
-                <h2>Model Settings</h2>
+                <h2>LLM Settings</h2>
                 <div class="settings-container">
                     <!-- Provider Selection -->
                     <div class="form-group">
@@ -395,9 +412,9 @@
                         <input type="text" id="custom-model-input" placeholder="Enter model name manually">
                     </div>
 
-                    <!-- Current Config Display -->
+                    <!-- Current LLM Config Display -->
                     <div class="current-config">
-                        <div class="config-title">Current Configuration</div>
+                        <div class="config-title">Current LLM Configuration</div>
                         <div class="config-content">
                             <div class="config-row">
                                 <span class="config-label">Provider:</span>
@@ -414,11 +431,141 @@
                         </div>
                     </div>
 
-                    <!-- Save Button -->
+                    <!-- Save LLM Button -->
                     <button type="button" class="btn btn-primary" id="save-settings-btn">
-                        <span class="btn-text">Save Settings</span>
+                        <span class="btn-text">Save LLM Settings</span>
                         <span class="spinner" style="display: none;"></span>
                     </button>
+                </div>
+            </div>
+
+            <!-- OCR Settings Card -->
+            <div class="card" style="margin-top: 24px;">
+                <h2>OCR Settings</h2>
+                <p class="tab-description">Configure PaddleOCR model for text detection and recognition.</p>
+                
+                <div class="settings-container">
+                    <!-- OCR Preset Selection -->
+                    <div class="form-group">
+                        <label for="ocr-preset-select">OCR Preset</label>
+                        <select id="ocr-preset-select">
+                            <option value="">-- Select a preset --</option>
+                        </select>
+                        <span class="form-hint">Select a preset configuration or configure manually below</span>
+                        
+                        <!-- Download Preset Models Button (hidden by default) -->
+                        <div id="preset-download-container" class="preset-download-container" style="display: none;">
+                            <button type="button" class="btn btn-warning btn-sm" id="download-preset-btn" onclick="downloadPresetModels()">
+                                <span class="btn-text">Download Preset Models</span>
+                                <span class="spinner" style="display: none;"></span>
+                            </button>
+                            <span class="download-hint">Required models are not downloaded yet</span>
+                        </div>
+                    </div>
+
+                    <!-- Detection Model -->
+                    <div class="form-group">
+                        <label for="ocr-det-model">Detection Model</label>
+                        <select id="ocr-det-model">
+                            <option value="">-- Select detection model --</option>
+                        </select>
+                    </div>
+
+                    <!-- Recognition Model -->
+                    <div class="form-group">
+                        <label for="ocr-rec-model">Recognition Model</label>
+                        <select id="ocr-rec-model">
+                            <option value="">-- Select recognition model --</option>
+                        </select>
+                    </div>
+
+                    <!-- Character Dictionary -->
+                    <div class="form-group">
+                        <label for="ocr-char-dict">Character Dictionary</label>
+                        <select id="ocr-char-dict">
+                            <option value="">-- Auto-detect from model --</option>
+                        </select>
+                        <span class="form-hint" id="ocr-char-dict-hint">Dictionary is auto-selected based on recognition model</span>
+                    </div>
+
+                    <!-- Current OCR Config Display -->
+                    <div class="current-config">
+                        <div class="config-title">Current OCR Configuration</div>
+                        <div class="config-content">
+                            <div class="config-row">
+                                <span class="config-label">Detection:</span>
+                                <span class="config-value" id="current-ocr-det">-</span>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">Recognition:</span>
+                                <span class="config-value" id="current-ocr-rec">-</span>
+                            </div>
+                            <div class="config-row">
+                                <span class="config-label">Dictionary:</span>
+                                <span class="config-value" id="current-ocr-dict">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save OCR Button -->
+                    <button type="button" class="btn btn-primary" id="save-ocr-settings-btn">
+                        <span class="btn-text">Save OCR Settings</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OCR Models Tab -->
+        <div id="ocr-models-tab" class="tab-content">
+            <div class="card">
+                <h2>PaddleOCR Models</h2>
+                <p class="tab-description">Download and manage PaddleOCR ONNX models for text detection and recognition.</p>
+                
+                <!-- Model Sets Section -->
+                <div class="model-sets-section">
+                    <h3>Quick Download (Model Sets)</h3>
+                    <p class="section-hint">Download a complete set of models for your use case:</p>
+                    <div class="model-sets-grid" id="model-sets-grid">
+                        <!-- Model set cards will be dynamically loaded -->
+                        <div class="loading-placeholder">Loading model sets...</div>
+                    </div>
+                </div>
+
+                <!-- Version Filter -->
+                <div class="model-filter-section">
+                    <h3>Individual Models</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-version="all">All</button>
+                        <button class="filter-btn" data-version="v3">PP-OCRv3</button>
+                        <button class="filter-btn" data-version="v5">PP-OCRv5</button>
+                    </div>
+                    <button class="btn btn-secondary" id="refresh-models-btn" onclick="refreshModelList()">
+                        <span class="btn-text">Refresh</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <!-- Models Table -->
+                <div class="table-container models-table-container">
+                    <table id="models-table" class="models-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Version</th>
+                                <th>Type</th>
+                                <th>Language</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="models-tbody">
+                            <tr>
+                                <td colspan="7" class="no-data">Loading models...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -479,7 +626,8 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=18"></script>
-    <script src="/static/js/file-browser.js?v=18"></script>
+    <script src="/static/js/app.js?v=26"></script>
+    <script src="/static/js/file-browser.js?v=26"></script>
+    <script src="/static/js/ocr-models.js?v=26"></script>
 </body>
 </html>

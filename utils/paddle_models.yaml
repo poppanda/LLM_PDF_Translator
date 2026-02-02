@@ -1,0 +1,572 @@
+# PaddleOCR Model Configuration
+# All models are downloaded from official PaddleOCR repository and converted locally.
+# Source: https://paddleocr.bj.bcebos.com/
+
+# Base URLs for model downloads
+base_urls:
+  paddle: "https://paddleocr.bj.bcebos.com"
+  paddlex: "https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0"
+  github_raw: "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR"
+  github_dict_base: "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/release/2.7/ppocr/utils"
+  github_dict_dir: "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/release/2.7/ppocr/utils/dict"
+  github_dict_main: "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/main/ppocr/utils/dict"
+
+# Model definitions
+models:
+  # ==================== PP-OCRv3 ====================
+  v3_det_en:
+    version: "v3"
+    model_type: "det"
+    language: "en"
+    filename: "en_PP-OCRv3_det_infer.onnx"
+    url: "{paddle}/PP-OCRv3/english/en_PP-OCRv3_det_infer.tar"
+    size_mb: 3.8
+    description: "PP-OCRv3 English Detection"
+    paddle_model_name: "en_PP-OCRv3_det_infer"
+
+  v3_rec_en:
+    version: "v3"
+    model_type: "rec"
+    language: "en"
+    filename: "en_PP-OCRv3_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv3/english/en_PP-OCRv3_rec_infer.tar"
+    size_mb: 9.5
+    description: "PP-OCRv3 English Recognition"
+    paddle_model_name: "en_PP-OCRv3_rec_infer"
+    dict_url: "{github_dict_base}/en_dict.txt"
+    dict_filename: "en_dict.txt"
+
+  v3_det_ch:
+    version: "v3"
+    model_type: "det"
+    language: "ch"
+    filename: "ch_PP-OCRv3_det_infer.onnx"
+    url: "{paddle}/PP-OCRv3/chinese/ch_PP-OCRv3_det_infer.tar"
+    size_mb: 3.8
+    description: "PP-OCRv3 Chinese Detection"
+    paddle_model_name: "ch_PP-OCRv3_det_infer"
+
+  v3_rec_ch:
+    version: "v3"
+    model_type: "rec"
+    language: "ch"
+    filename: "ch_PP-OCRv3_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv3/chinese/ch_PP-OCRv3_rec_infer.tar"
+    size_mb: 12.4
+    description: "PP-OCRv3 Chinese Recognition"
+    paddle_model_name: "ch_PP-OCRv3_rec_infer"
+    dict_url: "{github_dict_base}/ppocr_keys_v1.txt"
+    dict_filename: "ch_dict.txt"
+
+  v3_rec_ja:
+    version: "v3"
+    model_type: "rec"
+    language: "ja"
+    filename: "japan_PP-OCRv3_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv3/multilingual/japan_PP-OCRv3_rec_infer.tar"
+    size_mb: 11.0
+    description: "PP-OCRv3 Japanese Recognition"
+    paddle_model_name: "japan_PP-OCRv3_rec_infer"
+    dict_url: "{github_dict_dir}/japan_dict.txt"
+    dict_filename: "japan_dict.txt"
+
+  v3_rec_ko:
+    version: "v3"
+    model_type: "rec"
+    language: "ko"
+    filename: "korean_PP-OCRv3_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv3/multilingual/korean_PP-OCRv3_rec_infer.tar"
+    size_mb: 11.0
+    description: "PP-OCRv3 Korean Recognition"
+    paddle_model_name: "korean_PP-OCRv3_rec_infer"
+    dict_url: "{github_dict_dir}/korean_dict.txt"
+    dict_filename: "korean_dict.txt"
+
+  v3_rec_ar:
+    version: "v3"
+    model_type: "rec"
+    language: "ar"
+    filename: "arabic_PP-OCRv3_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv3/multilingual/arabic_PP-OCRv3_rec_infer.tar"
+    size_mb: 11.0
+    description: "PP-OCRv3 Arabic Recognition"
+    paddle_model_name: "arabic_PP-OCRv3_rec_infer"
+    dict_url: "{github_dict_dir}/arabic_dict.txt"
+    dict_filename: "arabic_dict.txt"
+
+  # ==================== PP-OCRv4 ====================
+  v4_det:
+    version: "v4"
+    model_type: "det"
+    language: "multi"
+    filename: "ch_PP-OCRv4_det_infer.onnx"
+    url: "{paddle}/PP-OCRv4/chinese/ch_PP-OCRv4_det_infer.tar"
+    size_mb: 4.7
+    description: "PP-OCRv4 Detection (Multi-language)"
+    paddle_model_name: "ch_PP-OCRv4_det_infer"
+
+  v4_rec_en:
+    version: "v4"
+    model_type: "rec"
+    language: "en"
+    filename: "en_PP-OCRv4_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv4/english/en_PP-OCRv4_rec_infer.tar"
+    size_mb: 10.0
+    description: "PP-OCRv4 English Recognition"
+    paddle_model_name: "en_PP-OCRv4_rec_infer"
+    dict_url: "{github_dict_base}/en_dict.txt"
+    dict_filename: "en_dict_v4.txt"
+
+  v4_rec_ch:
+    version: "v4"
+    model_type: "rec"
+    language: "ch"
+    filename: "ch_PP-OCRv4_rec_infer.onnx"
+    url: "{paddle}/PP-OCRv4/chinese/ch_PP-OCRv4_rec_infer.tar"
+    size_mb: 10.5
+    description: "PP-OCRv4 Chinese Recognition"
+    paddle_model_name: "ch_PP-OCRv4_rec_infer"
+    dict_url: "{github_dict_base}/ppocr_keys_v1.txt"
+    dict_filename: "ch_dict_v4.txt"
+
+  v4_det_server:
+    version: "v4"
+    model_type: "det"
+    language: "multi"
+    filename: "ch_PP-OCRv4_det_server_infer.onnx"
+    url: "{paddle}/PP-OCRv4/chinese/ch_PP-OCRv4_det_server_infer.tar"
+    size_mb: 110.0
+    description: "PP-OCRv4 Server Detection (High Accuracy)"
+    paddle_model_name: "ch_PP-OCRv4_det_server_infer"
+
+  v4_rec_server:
+    version: "v4"
+    model_type: "rec"
+    language: "ch"
+    filename: "ch_PP-OCRv4_rec_server_infer.onnx"
+    url: "{paddle}/PP-OCRv4/chinese/ch_PP-OCRv4_rec_server_infer.tar"
+    size_mb: 88.0
+    description: "PP-OCRv4 Server Recognition (High Accuracy)"
+    paddle_model_name: "ch_PP-OCRv4_rec_server_infer"
+    dict_url: "{github_dict_base}/ppocr_keys_v1.txt"
+    dict_filename: "ch_dict_v4_server.txt"
+
+  # ==================== Classification ====================
+  v2_cls:
+    version: "v2"
+    model_type: "cls"
+    language: "multi"
+    filename: "ch_ppocr_mobile_v2.0_cls_infer.onnx"
+    url: "{paddle}/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_cls_infer.tar"
+    size_mb: 2.1
+    description: "Text Direction Classification"
+    paddle_model_name: "ch_ppocr_mobile_v2.0_cls_infer"
+
+  # ==================== PP-OCRv5 ====================
+  # Detection models
+  v5_det_server:
+    version: "v5"
+    model_type: "det"
+    language: "multi"
+    filename: "PP-OCRv5_server_det_infer.onnx"
+    url: "{paddlex}/PP-OCRv5_server_det_infer.tar"
+    size_mb: 84.3
+    description: "PP-OCRv5 Server Detection (High Accuracy)"
+    paddle_model_name: "PP-OCRv5_server_det_infer"
+
+  v5_det_mobile:
+    version: "v5"
+    model_type: "det"
+    language: "multi"
+    filename: "PP-OCRv5_mobile_det_infer.onnx"
+    url: "{paddlex}/PP-OCRv5_mobile_det_infer.tar"
+    size_mb: 4.7
+    description: "PP-OCRv5 Mobile Detection (Lightweight)"
+    paddle_model_name: "PP-OCRv5_mobile_det_infer"
+
+  # Recognition models - Server & Mobile
+  v5_rec_server:
+    version: "v5"
+    model_type: "rec"
+    language: "multi"
+    filename: "PP-OCRv5_server_rec_infer.onnx"
+    url: "{paddlex}/PP-OCRv5_server_rec_infer.tar"
+    size_mb: 81.0
+    description: "PP-OCRv5 Server Recognition (CN/EN/JP/Traditional CN)"
+    paddle_model_name: "PP-OCRv5_server_rec_infer"
+    dict_url: "{github_dict_base}/ppocr_keys_v1.txt"
+    dict_filename: "ppocr_keys_v5.txt"
+
+  v5_rec_mobile:
+    version: "v5"
+    model_type: "rec"
+    language: "multi"
+    filename: "PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 16.0
+    description: "PP-OCRv5 Mobile Recognition (CN/EN/JP/Traditional CN)"
+    paddle_model_name: "PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_base}/ppocr_keys_v1.txt"
+    dict_filename: "ppocr_keys_v5_mobile.txt"
+
+  # Recognition models - English
+  v5_rec_en:
+    version: "v5"
+    model_type: "rec"
+    language: "en"
+    filename: "en_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/en_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 English Recognition"
+    paddle_model_name: "en_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_base}/en_dict.txt"
+    dict_filename: "en_dict_v5.txt"
+
+  # Recognition models - Multilingual
+  v5_rec_ko:
+    version: "v5"
+    model_type: "rec"
+    language: "ko"
+    filename: "korean_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/korean_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 14.0
+    description: "PP-OCRv5 Korean Recognition"
+    paddle_model_name: "korean_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/korean_dict.txt"
+    dict_filename: "korean_dict_v5.txt"
+
+  v5_rec_latin:
+    version: "v5"
+    model_type: "rec"
+    language: "latin"
+    filename: "latin_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/latin_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 14.0
+    description: "PP-OCRv5 Latin Recognition"
+    paddle_model_name: "latin_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/latin_dict.txt"
+    dict_filename: "latin_dict_v5.txt"
+
+  v5_rec_ar:
+    version: "v5"
+    model_type: "rec"
+    language: "ar"
+    filename: "arabic_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/arabic_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.6
+    description: "PP-OCRv5 Arabic Recognition"
+    paddle_model_name: "arabic_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/arabic_dict.txt"
+    dict_filename: "arabic_dict_v5.txt"
+
+  v5_rec_cyrillic:
+    version: "v5"
+    model_type: "rec"
+    language: "cyrillic"
+    filename: "cyrillic_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/cyrillic_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.7
+    description: "PP-OCRv5 Cyrillic Recognition (Russian, etc.)"
+    paddle_model_name: "cyrillic_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/cyrillic_dict.txt"
+    dict_filename: "cyrillic_dict_v5.txt"
+
+  v5_rec_devanagari:
+    version: "v5"
+    model_type: "rec"
+    language: "devanagari"
+    filename: "devanagari_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/devanagari_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 Devanagari Recognition (Hindi, Sanskrit)"
+    paddle_model_name: "devanagari_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/devanagari_dict.txt"
+    dict_filename: "devanagari_dict_v5.txt"
+
+  v5_rec_eslav:
+    version: "v5"
+    model_type: "rec"
+    language: "eslav"
+    filename: "eslav_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/eslav_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 14.0
+    description: "PP-OCRv5 East Slavic Recognition (Russian, etc.)"
+    paddle_model_name: "eslav_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/cyrillic_dict.txt"
+    dict_filename: "eslav_dict_v5.txt"
+
+  v5_rec_th:
+    version: "v5"
+    model_type: "rec"
+    language: "th"
+    filename: "th_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/th_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 Thai Recognition"
+    paddle_model_name: "th_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_main}/th_dict.txt"
+    dict_filename: "thai_dict_v5.txt"
+
+  v5_rec_el:
+    version: "v5"
+    model_type: "rec"
+    language: "el"
+    filename: "el_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/el_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 Greek Recognition"
+    paddle_model_name: "el_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/latin_dict.txt"
+    dict_filename: "greek_dict_v5.txt"
+
+  v5_rec_ta:
+    version: "v5"
+    model_type: "rec"
+    language: "ta"
+    filename: "ta_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/ta_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 Tamil Recognition"
+    paddle_model_name: "ta_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/ta_dict.txt"
+    dict_filename: "ta_dict_v5.txt"
+
+  v5_rec_te:
+    version: "v5"
+    model_type: "rec"
+    language: "te"
+    filename: "te_PP-OCRv5_mobile_rec_infer.onnx"
+    url: "{paddlex}/te_PP-OCRv5_mobile_rec_infer.tar"
+    size_mb: 7.5
+    description: "PP-OCRv5 Telugu Recognition"
+    paddle_model_name: "te_PP-OCRv5_mobile_rec_infer"
+    dict_url: "{github_dict_dir}/te_dict.txt"
+    dict_filename: "te_dict_v5.txt"
+
+  v5_cls:
+    version: "v5"
+    model_type: "cls"
+    language: "multi"
+    filename: "PP-LCNet_x0_25_textline_ori_infer.onnx"
+    url: "{paddlex}/PP-LCNet_x0_25_textline_ori_infer.tar"
+    size_mb: 0.96
+    description: "PP-OCRv5 Textline Orientation Classifier"
+    paddle_model_name: "PP-LCNet_x0_25_textline_ori_infer"
+
+# Model sets for easy selection
+model_sets:
+  # PP-OCRv5 (Latest - Recommended)
+  v5_server:
+    models: ["v5_det_server", "v5_rec_server", "v5_cls"]
+  v5_mobile:
+    models: ["v5_det_mobile", "v5_rec_mobile", "v5_cls"]
+  v5_english:
+    models: ["v5_det_mobile", "v5_rec_en", "v5_cls"]
+  v5_multilingual:
+    models: ["v5_det_mobile", "v5_rec_server", "v5_cls"]
+  # PP-OCRv4
+  v4_english:
+    models: ["v4_det", "v4_rec_en"]
+  v4_chinese:
+    models: ["v4_det", "v4_rec_ch"]
+  v4_server:
+    models: ["v4_det_server", "v4_rec_server"]
+  # PP-OCRv3
+  v3_english:
+    models: ["v3_det_en", "v3_rec_en", "v2_cls"]
+  v3_chinese:
+    models: ["v3_det_ch", "v3_rec_ch", "v2_cls"]
+
+# Model set metadata for UI
+model_set_info:
+  v5_server:
+    name: "PP-OCRv5 Server"
+    description: "Highest accuracy, CN/EN/JP/Traditional CN"
+    models_desc: "det + rec + cls (84MB + 81MB)"
+    badge: "Best Accuracy"
+    badge_type: "accuracy"
+    order: 1
+  v5_mobile:
+    name: "PP-OCRv5 Mobile"
+    description: "Lightweight multi-language OCR"
+    models_desc: "det + rec + cls (5MB + 16MB)"
+    badge: "Recommended"
+    badge_type: "default"
+    order: 2
+  v5_english:
+    name: "PP-OCRv5 English"
+    description: "Optimized for English text"
+    models_desc: "det + rec + cls"
+    badge: "New"
+    badge_type: "new"
+    order: 3
+  v5_multilingual:
+    name: "PP-OCRv5 Multilingual"
+    description: "Best for mixed language documents"
+    models_desc: "det + rec + cls"
+    badge: "New"
+    badge_type: "new"
+    order: 4
+  v4_english:
+    name: "PP-OCRv4 English"
+    description: "v4 English OCR"
+    models_desc: "det + rec"
+    order: 5
+  v4_chinese:
+    name: "PP-OCRv4 Chinese"
+    description: "v4 Chinese OCR"
+    models_desc: "det + rec"
+    order: 6
+  v4_server:
+    name: "PP-OCRv4 Server"
+    description: "High accuracy v4 models"
+    models_desc: "det + rec"
+    badge: "High Accuracy"
+    badge_type: "accuracy"
+    order: 7
+  v3_english:
+    name: "PP-OCRv3 English"
+    description: "Lightweight English OCR"
+    models_desc: "det + rec + cls"
+    order: 8
+  v3_chinese:
+    name: "PP-OCRv3 Chinese"
+    description: "Chinese text recognition"
+    models_desc: "det + rec + cls"
+    order: 9
+
+# OCR model presets for configuration
+ocr_presets:
+  v5_server:
+    name: "PP-OCRv5 Server"
+    description: "Highest accuracy, supports CN/EN/JP/Traditional CN"
+    det:
+      model: "PP-OCRv5_server_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "PP-OCRv5_server_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ppocr_keys_v5.txt"
+    cls:
+      enabled: true
+      model: "PP-LCNet_x0_25_textline_ori_infer.onnx"
+      image_shape: "3, 80, 160"
+    required_models: ["v5_det_server", "v5_rec_server", "v5_cls"]
+
+  v5_mobile:
+    name: "PP-OCRv5 Mobile"
+    description: "Lightweight multi-language OCR"
+    det:
+      model: "PP-OCRv5_mobile_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "PP-OCRv5_mobile_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ppocr_keys_v5_mobile.txt"
+    cls:
+      enabled: true
+      model: "PP-LCNet_x0_25_textline_ori_infer.onnx"
+      image_shape: "3, 80, 160"
+    required_models: ["v5_det_mobile", "v5_rec_mobile", "v5_cls"]
+
+  v5_english:
+    name: "PP-OCRv5 English"
+    description: "Optimized for English text"
+    det:
+      model: "PP-OCRv5_mobile_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "en_PP-OCRv5_mobile_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "en_dict_v5.txt"
+    cls:
+      enabled: true
+      model: "PP-LCNet_x0_25_textline_ori_infer.onnx"
+      image_shape: "3, 80, 160"
+    required_models: ["v5_det_mobile", "v5_rec_en", "v5_cls"]
+
+  v5_multilingual:
+    name: "PP-OCRv5 Multilingual"
+    description: "Best for mixed language documents"
+    det:
+      model: "PP-OCRv5_mobile_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "PP-OCRv5_server_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ppocr_keys_v5.txt"
+    cls:
+      enabled: true
+      model: "PP-LCNet_x0_25_textline_ori_infer.onnx"
+      image_shape: "3, 80, 160"
+    required_models: ["v5_det_mobile", "v5_rec_server", "v5_cls"]
+
+  v4_english:
+    name: "PP-OCRv4 English"
+    description: "v4 English OCR"
+    det:
+      model: "ch_PP-OCRv4_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "en_PP-OCRv4_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "en_dict_v4.txt"
+    cls:
+      enabled: false
+    required_models: ["v4_det", "v4_rec_en"]
+
+  v4_chinese:
+    name: "PP-OCRv4 Chinese"
+    description: "v4 Chinese OCR"
+    det:
+      model: "ch_PP-OCRv4_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "ch_PP-OCRv4_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ch_dict_v4.txt"
+    cls:
+      enabled: false
+    required_models: ["v4_det", "v4_rec_ch"]
+
+  v4_server:
+    name: "PP-OCRv4 Server"
+    description: "High accuracy v4 models"
+    det:
+      model: "ch_PP-OCRv4_det_server_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "ch_PP-OCRv4_rec_server_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ch_dict_v4_server.txt"
+    cls:
+      enabled: false
+    required_models: ["v4_det_server", "v4_rec_server"]
+
+  v3_english:
+    name: "PP-OCRv3 English"
+    description: "Lightweight English OCR"
+    det:
+      model: "en_PP-OCRv3_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "en_PP-OCRv3_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "en_dict.txt"
+    cls:
+      enabled: false
+    required_models: ["v3_det_en", "v3_rec_en"]
+
+  v3_chinese:
+    name: "PP-OCRv3 Chinese"
+    description: "Chinese text recognition"
+    det:
+      model: "ch_PP-OCRv3_det_infer.onnx"
+      algorithm: "DB"
+    rec:
+      model: "ch_PP-OCRv3_rec_infer.onnx"
+      algorithm: "SVTR_LCNet"
+      char_dict: "ch_dict.txt"
+    cls:
+      enabled: false
+    required_models: ["v3_det_ch", "v3_rec_ch"]
